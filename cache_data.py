@@ -50,7 +50,7 @@ def cache_return(cache_max):
 				_mutex.acquire()
 				_cache[func][argscache] = ret
 				if cache_max is not None:
-					Thread(target=_remove_value_later, args=(func, argscache, cache_max)).start()
+					Thread(target=_remove_value_later, args=(func, argscache, cache_max), daemon=True).start()
 			finally:
 				_mutex.release()
 			return ret
