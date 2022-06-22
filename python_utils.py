@@ -361,14 +361,15 @@ class AsyncExecReturn(Thread):
 
 class ConfigDict(dict):
 	def __init__(self, configfile):
+		super().__init__()
 		self.configfile = configfile
 		self.reload()
 
 	def reload(self):
+		self.clear()
 		if os.path.exists(self.configfile):
-			super().__init__(json.load(open(self.configfile, 'r', encoding='utf8')))
+			self.update(json.load(open(self.configfile, 'r', encoding='utf8')))
 		else:
-			super().__init__({})
 			self.save()
 
 	def save(self, **kwargs):
