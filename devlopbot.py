@@ -383,7 +383,8 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 
 	bot.loop.create_task(edit_info_message(creator_id, interaction.channel))
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
-	bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url})")))
+	bot.loop.create_task(try_send_dm(member,
+		embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."))
 
 
@@ -405,7 +406,8 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 
 	bot.loop.create_task(edit_info_message(creator_id, interaction.channel))
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
-	bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url})")))
+	bot.loop.create_task(try_send_dm(member,
+		embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."))
 
 
