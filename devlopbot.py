@@ -1,6 +1,5 @@
 from typing import Optional, Union
 
-import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -550,6 +549,43 @@ async def ping_cmd(interaction):
 	msg_latency = time.time() - start
 	embed.description += f"\n\n**Temps d'envoi du message** : `{round(msg_latency * 1000)}ms`"
 	await interaction.edit_original_message(embed=embed)
+
+
+@bot.slash_command(name="config", guild_ids=guild_ids, default_member_permissions=nextcord.Permissions(administrator=True))
+@application_checks.has_permissions(administrator=True)
+async def config_cmd():
+	pass
+
+
+@config_cmd.subcommand(name="save", description="Permet de sauvegarder le fichier de configuration")
+@application_checks.is_owner()
+async def config_save_cmd(interaction: nextcord.Interaction):
+	save_json()
+	await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été sauvegardé"), ephemeral=True)
+
+
+@config_cmd.subcommand(name="reload", description="Permet de recharger le fichier de configuration")
+@application_checks.is_owner()
+async def config_save_cmd(interaction: nextcord.Interaction):
+	load_json()
+	await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été rechargé"), ephemeral=True)
+
+
+@config_cmd.subcommand(name="settings", description="Permet de définir certains paramètres")
+@application_checks.has_permissions(administrator=True)
+async def config_settings_cmd(interaction: nextcord.Interaction,
+		max_projects: int = nextcord.SlashOption(name="max-projets", description="Définir le maximum de projets par membre", required=False)):
+	config = data["config"]
+	if max_projects is None:
+		lines = []
+		for setting in (("max-projects", "Nombre de projets maximum"),):
+			lines.append(f"{setting[1]}: {config[setting[0]]}")
+		await interaction.response.send_message(embed=normal_embed("\n".join(lines), "Paramètres actuels :"), ephemeral=True)
+	else:
+		if max_projects is not None:
+			config["max-projects"] = max_projects
+		save_json()
+		await interaction.response.send_message(embed=validation_embed("Les paramètres ont été modifiés"), ephemeral=True)
 
 
 @tasks.loop(minutes=1)
