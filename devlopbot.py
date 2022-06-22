@@ -42,7 +42,7 @@ class CreateProjectView(ui.View):
 
 	@ui.button(label="Créer un projet", emoji="🔬", custom_id=f"{view_name}:create_button", style=nextcord.ButtonStyle.primary)
 	async def create_button(self, button, interaction):
-		await interaction.response.send_modal(ProjectTopicModal())
+		await create_project_start(interaction)
 
 
 class ConfirmationView(ui.View):
@@ -126,12 +126,11 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			if not is_project_channel(channel):
 				await interaction.response.send_message(embed=error_embed("Cette action n'est possible que dans un salon de projet."), ephemeral=True)
 
-			r = find_project(interaction.channel)[0]
+			r = find_project(interaction.channel)
 			if r is None:
 				await interaction.response.send_message(embed=error_embed("Le projet n'a pas été trouvé ! Il a peut-être été supprimé par un administrateur."), ephemeral=True)
 				return
 			creator_id, project_data = r
-			channel_id_str = str(interaction.channel.id)
 
 			bot.loop.create_task(interaction.channel.edit(name=self.name_field.value,
 				topic=f"Projet de <@{creator_id}>\n\n- {self.description_field.value}", reason="Modification d'un projet"))
@@ -141,7 +140,7 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			project_data["info_message"] = (await edit_info_message(creator_id, channel)).id
 			save_json()
 			embed = validation_embed(f"Votre projet à été modifié.")
-			embed.set_footer(text="*Le nom et la description du salon peuvent prendre quelques minutes à se modifier, à cause des ratelimits de discord.*")
+			embed.set_footer(text="Le nom et la description du salon peuvent prendre quelques minutes à se modifier, à cause des ratelimits de discord.")
 			await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -212,7 +211,7 @@ async def create_project_start(interaction: nextcord.Interaction):
 	user_data = data["projects"].get(str(interaction.user.id))
 	max_projects = data["config"]["max-projects"]
 	if len(user_data) >= max_projects:
-		await interaction.response.send_message(embed=error_embed(f"Vous ne pouvez avoir que {max_projects} au maximum."), ephemeral=True)
+		await interaction.response.send_message(embed=error_embed(f"Vous ne pouvez avoir que {max_projects} projects au maximum."), ephemeral=True)
 		return
 	await interaction.response.send_modal(ProjectTopicModal())
 
@@ -245,10 +244,10 @@ def generate_info_message(user, channel):
 	user_id = get_id_str(user)
 	channel_id = get_id_str(channel)
 
-	project_data = data[user_id][channel_id]
+	project_data = projects_data[user_id][channel_id]
 	embed = nextcord.Embed(description=project_data["description"], color=embed_color, title=project_data["name"])
 	embed.add_field(name="Créateur", value=f"<@{user_id}>", inline=False)
-	embed.add_field(name="Membres du projet", value=" ".join([f"<@{x}>" for x in (project_data["members"] + user_id)]), inline=False)
+	embed.add_field(name="Membres du projet", value=" ".join([f"<@{x}>" for x in (project_data["members"] + [user_id])]), inline=False)
 	embed.set_footer(text="Merci de ne pas supprimer ce message.")
 	return embed
 
@@ -269,6 +268,7 @@ async def edit_info_message(user, channel):
 	project_data = data["projects"][user_id][channel_id]
 	try:
 		message = await channel_obj.fetch_message(project_data["info_message"])
+		bot.loop.create_task(message.edit(embed=embed))
 	except nextcord.errors.NotFound:
 		message = await channel_obj.send("Ne vous ai-je pas dit de ne pas supprimer ce message ?", embed=embed)
 		bot.loop.create_task(message.pin(reason="Épinglage du message d'informations"))
@@ -423,7 +423,7 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 		save_json()
 		await interaction.channel.delete(reason="Suppression d'un projet")
 	else:
-		await interaction.edit_original_message(embed=error_embed("Suppression du projet annulée"), view=None)
+		await interaction.edit_original_message(embed=validation_embed("Suppression du projet annulée"), view=None)
 
 
 @project_cmd.subcommand(name="mute", description="Permet de réduire au silence un membre")
@@ -642,6 +642,7 @@ async def on_member_remove(member):
 
 async def startup_tasks():
 	bot.add_modal(ProjectTopicModal())
+	bot.add_modal(ProjectTopicEditModal())
 	bot.add_view(CreateProjectView())
 	bot.add_view(RulesAcceptView())
 
