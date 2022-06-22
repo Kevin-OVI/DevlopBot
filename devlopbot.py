@@ -305,6 +305,10 @@ def is_project_member(user, channel):
 	return user_id in project["members"]
 
 
+def check_bot_owner():
+	return application_checks.check(lambda interaction: interaction.user.id == 894999665760665600)
+
+
 embed_color = 0xAD1457
 TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
@@ -556,14 +560,14 @@ async def config_cmd():
 
 
 @config_cmd.subcommand(name="save", description="Permet de sauvegarder le fichier de configuration")
-@application_checks.is_owner()
+@check_bot_owner()
 async def config_save_cmd(interaction: nextcord.Interaction):
 	save_json()
 	await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été sauvegardé"), ephemeral=True)
 
 
 @config_cmd.subcommand(name="reload", description="Permet de recharger le fichier de configuration")
-@application_checks.is_owner()
+@check_bot_owner()
 async def config_save_cmd(interaction: nextcord.Interaction):
 	load_json()
 	await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été rechargé"), ephemeral=True)
