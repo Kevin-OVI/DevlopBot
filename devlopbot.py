@@ -1,5 +1,6 @@
 from typing import Optional, Union
 
+import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -423,7 +424,7 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 		save_json()
 		await interaction.channel.delete(reason="Suppression d'un projet")
 	else:
-		await interaction.edit_original_message(embed=validation_embed("Suppression du projet annulée"), view=None)
+		await interaction.edit_original_message(embed=normal_embed("Suppression du projet annulée"), view=None)
 
 
 @project_cmd.subcommand(name="mute", description="Permet de réduire au silence un membre")
@@ -541,14 +542,14 @@ async def rules_set_cmd(interaction, rules_file: nextcord.Attachment = nextcord.
 
 
 @bot.slash_command(name="ping", description="Affiche la latence du bot", guild_ids=guild_ids)
-async def ping_cmd(ctx):
+async def ping_cmd(interaction):
 	embed = nextcord.Embed(title='<:wifi:895028279478734878> | Temps de réponses :',
 		description=f"**Latence de l'api discord** : `{round(bot.latency * 1000)}ms`", color=embed_color)
 	start = time.time()
-	await ctx.response.send_message(embed=embed, ephemeral=True)
+	await interaction.response.send_message(embed=embed, ephemeral=True)
 	msg_latency = time.time() - start
 	embed.description += f"\n\n**Temps d'envoi du message** : `{round(msg_latency * 1000)}ms`"
-	await ctx.edit_original_message(embed=embed)
+	await interaction.edit_original_message(embed=embed)
 
 
 @tasks.loop(minutes=1)
