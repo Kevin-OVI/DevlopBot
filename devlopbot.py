@@ -246,7 +246,7 @@ def generate_info_message(user, channel):
 	project_data = data[user_id][channel_id]
 	embed = nextcord.Embed(description=project_data["description"], color=embed_color, title=project_data["name"])
 	embed.add_field(name="Créateur", value=f"<@{user_id}>", inline=False)
-	embed.add_field(name="Membres du projet", value=" ".join([f"<@{x}>" for x in project_data["members"]]), inline=False)
+	embed.add_field(name="Membres du projet", value=" ".join([f"<@{x}>" for x in (project_data["members"] + user_id)]), inline=False)
 	embed.set_footer(text="Merci de ne pas supprimer ce message.")
 	return embed
 
