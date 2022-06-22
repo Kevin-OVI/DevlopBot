@@ -36,7 +36,6 @@ def cache_return(cache_max):
 	def deco(func):
 		@wraps(func)
 		def overwrite(*args, **kwargs):
-			print(_cache)
 			argscache = _ArgsCache(args, kwargs)
 			try:
 				_mutex.acquire()
