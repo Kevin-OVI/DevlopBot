@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
 
+from cache_data import cache_return
 from discord_utils import *
 
 load_dotenv()
@@ -278,6 +279,7 @@ def is_project_channel(channel: nextcord.abc.GuildChannel):
 	return channel.category == projects_categ and channel.id not in project_ignore_channels
 
 
+@cache_return(1800)
 def find_project(channel):
 	channel_id = get_id_str(channel)
 	for user, projects in projects_data.items():
@@ -285,6 +287,7 @@ def find_project(channel):
 			return user, projects[channel_id]
 
 
+@cache_return(1800)
 def is_project_creator(user, channel):
 	user_id = get_id_str(user)
 	channel_id = get_id_str(channel)
