@@ -84,8 +84,7 @@ class ProjectTopicModal(ui.Modal):
 	def __init__(self, interaction: Optional[nextcord.Interaction] = None):
 		description, name, title = None, None, "Création d'un projet"
 		if interaction:
-			creator_id = find_project(interaction.channel)[0]
-			project_data = data["projects"][creator_id][str(interaction.channel.id)]
+			creator_id, project_data = find_project(interaction.channel)
 			description = project_data["description"]
 			name = project_data["name"]
 			title = "Modification d'un projet"
@@ -366,8 +365,7 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 		await interaction.response.send_message(embed=error_embed("Le membre est déjà membre de ce projet"), ephemeral=True)
 		return
 
-	creator_id = find_project(interaction.channel)[0]
-	project_data = projects_data[creator_id][get_id_str(interaction.channel)]
+	creator_id, project_data = find_project(interaction.channel)
 	user_id = get_id_str(member)
 	if user_id in project_data["mutes"]:
 		await interaction.response.send_message(embed=error_embed("Vous ne pouvez pas ajouter au projet un membre réduit au silence."), ephemeral=True)
@@ -394,8 +392,7 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 		await interaction.response.send_message(embed=error_embed("Le membre n'est pas membre de ce projet"), ephemeral=True)
 		return
 
-	creator_id = find_project(interaction.channel)[0]
-	project_data = projects_data[creator_id][get_id_str(interaction.channel)]
+	creator_id, project_data = find_project(interaction.channel)
 	project_data["members"].remove(get_id_str(member))
 	save_json()
 
@@ -430,8 +427,7 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 @check_project_member
 async def project_mute_cmd(interaction: nextcord.Interaction,
 		member: nextcord.Member = nextcord.SlashOption(name="membre", description="Le membre à réduire au silence", required=True)):
-	creator_id = find_project(interaction.channel)[0]
-	project_data = projects_data[creator_id][get_id_str(interaction.channel)]
+	creator_id, project_data = find_project(interaction.channel)
 	user_id = get_id_str(member)
 	if user_id in project_data["mutes"]:
 		await interaction.response.send_message(embed=error_embed("Le membre est déjà réduit au silence."), ephemeral=True)
@@ -451,8 +447,7 @@ async def project_mute_cmd(interaction: nextcord.Interaction,
 @check_project_member
 async def project_unmute_cmd(interaction: nextcord.Interaction,
 		member: nextcord.Member = nextcord.SlashOption(name="membre", description="Le membre auquel supprimer la réduction au silence", required=True)):
-	creator_id = find_project(interaction.channel)[0]
-	project_data = projects_data[creator_id][get_id_str(interaction.channel)]
+	creator_id, project_data = find_project(interaction.channel)
 	user_id = get_id_str(member)
 	if user_id not in project_data["mutes"]:
 		await interaction.response.send_message(embed=error_embed("Le membre n'est pas réduit au silence."), ephemeral=True)
