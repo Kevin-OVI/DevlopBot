@@ -28,6 +28,8 @@ def _remove_value_later(func, argscache, cache_max):
 		del (_cache[func][argscache])
 		if not _cache[func]:
 			del (_cache[func])
+	except KeyError:
+		pass
 	finally:
 		_mutex.release()
 
@@ -58,3 +60,7 @@ def cache_return(cache_max):
 		return overwrite
 
 	return deco
+
+
+def empty_cache():
+	_cache.clear()

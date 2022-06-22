@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
 
-from cache_data import cache_return
+from cache_data import cache_return, empty_cache
 from discord_utils import *
 
 load_dotenv()
@@ -570,6 +570,7 @@ async def config_save_cmd(interaction: nextcord.Interaction):
 @check_bot_owner()
 async def config_save_cmd(interaction: nextcord.Interaction):
 	load_json()
+	empty_cache()
 	await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été rechargé"), ephemeral=True)
 
 
