@@ -327,7 +327,7 @@ bot = nextcord.Client(intents=nextcord.Intents(guilds=True, members=True, reacti
 
 
 @bot.slash_command(name="project", guild_ids=guild_ids)
-async def project_cmd(self):
+async def project_cmd():
 	pass
 
 
@@ -483,11 +483,12 @@ async def roleonreact_add_cmd(interaction,
 		message_id: str = nextcord.SlashOption(name="message_id", description="L'identifiant du message auquel ajouter le role-réaction", required=True),
 		reaction: str = nextcord.SlashOption(name="reaction", description="La réaction à ajouter", required=True),
 		role: nextcord.Role = nextcord.SlashOption(name="role", description="Le rôle à ajouter", required=True)):
+	section = data['roleonreact']
 	try:
 		message = await interaction.channel.fetch_message(message_id)
 		await message.add_reaction(reaction)
-		data['roleonreact'].setdefault(message_id, {})
-		data['roleonreact'][message_id][reaction] = role.id
+		section.setdefault(message_id, {})
+		section[message_id][reaction] = role.id
 		await interaction.response.send_message('Le role sur réaction a été ajouté', ephemeral=True)
 		save_json()
 	except nextcord.errors.NotFound:
@@ -501,13 +502,14 @@ async def roleonreact_add_cmd(interaction,
 async def roleonreact_remove_cmd(interaction,
 		message_id: str = nextcord.SlashOption(name="message_id", description="L'identifiant du message duquel supprimer le role-réaction", required=True),
 		reaction: str = nextcord.SlashOption(name="reaction", description="La réaction à supprimer", required=True)):
+	section = data['roleonreact']
 	try:
-		if message_id in data['roleonreact'].keys():
-			if reaction in data['roleonreact'][message_id].keys():
-				del (data['roleonreact'][message_id][reaction])
+		if message_id in section.keys():
+			if reaction in section[message_id].keys():
+				del (section[message_id][reaction])
 
-			if not data['roleonreact'][message_id]:
-				del (data['roleonreact'][message_id])
+			if not section[message_id]:
+				del (section[message_id])
 		save_json()
 		await interaction.response.send_message("Le rôle-réaction a été supprimé", ephemeral=True)
 
@@ -534,14 +536,14 @@ async def rules_get_cmd(interaction):
 
 @rules_cmd.subcommand(name="set", description="Permet de définir le json de l'embed du message des règles")
 @application_checks.has_permissions(administrator=True)
-async def rules_set_cmd(interaction, rules_file: nextcord.Attachment = nextcord.SlashOption(name="embed", description="Le json du message des règles", required=True)):
+async def rules_set_cmd(interaction, rules_file: nextcord.Attachment = nextcord.SlashOption(name="embed", description="Le json de l'embed du message des règles", required=True)):
 	jload = json.loads(await rules_file.read())
 	if type(jload) == list:
 		embeds = [nextcord.Embed.from_dict(x) for x in jload]
 	elif type(jload) == dict:
 		embeds = [nextcord.Embed.from_dict(jload)]
 	else:
-		await interaction.reply("Le json doit être un array d'objets embeds ou un objet embed")
+		await interaction.reply("Le json doit être une liste d'objets embeds ou un objet embed")
 		return
 
 	await rules_msg.edit(embeds=embeds, view=RulesAcceptView())
@@ -584,25 +586,29 @@ async def config_save_cmd(interaction: nextcord.Interaction):
 @application_checks.has_permissions(administrator=True)
 async def config_settings_cmd(interaction: nextcord.Interaction,
 		max_projects: int = nextcord.SlashOption(name="max-projets", description="Définir le maximum de projets par membre", required=False)):
-	config = data["config"]
+	section = data["config"]
 	if max_projects is None:
 		lines = []
-		for setting in (("max-projects", "Nombre de projets maximum"),):
-			lines.append(f"{setting[1]}: {config[setting[0]]}")
+		for config_name, display_name in (("max-projects", "Nombre de projets maximum"),):
+			lines.append(f"{display_name}: {section[config_name]}")
 		await interaction.response.send_message(embed=normal_embed("\n".join(lines), "Paramètres actuels :"), ephemeral=True)
 	else:
-		if max_projects is not None:
-			config["max-projects"] = max_projects
+		for config_name, command_variable in (("max-projects", max_projects), ):
+			if command_variable is not None:
+				section[config_name] = command_variable
 		save_json()
 		await interaction.response.send_message(embed=validation_embed("Les paramètres ont été modifiés"), ephemeral=True)
 
 
 @tasks.loop(minutes=1)
 async def kick_not_accept_rules():
-	for member_id, kick_time in [x for x in data['join_not_rules'].items()]:
+	section = data['join_not_rules']
+	save = False
+	for member_id, kick_time in [x for x in section.items()]:
 		member = main_guild.get_member(int(member_id))
 		if not member:
-			del (data['join_not_rules'][member_id])
+			del (section[member_id])
+			save = True
 			continue
 
 		if time.time() >= kick_time:
@@ -613,15 +619,16 @@ async def kick_not_accept_rules():
 			mp_embed.timestamp = get_timestamp()
 			await send_dm(member, embed=mp_embed)
 			await main_guild.kick(member, reason="Règles non acceptées après 2 heures")
-			del (data['join_not_rules'][member_id])
+			del (section[member_id])
+			save = True
+	if save:
+		save_json()
 
 
 @tasks.loop(seconds=15)
 async def status_change():
-	await bot.change_presence(status=nextcord.Status.online,
-		activity=nextcord.Activity(type=status_msg[1][status_msg[0]][0],
-			name=super_replace(status_msg[1][status_msg[0]][1], {
-				'%members%': str(len(main_guild.humans))})))
+	await bot.change_presence(status=nextcord.Status.online, activity=nextcord.Activity(type=status_msg[1][status_msg[0]][0],
+		name=super_replace(status_msg[1][status_msg[0]][1], {'%members%': str(len(main_guild.humans))})))
 	status_msg[0] += 1
 	if status_msg[0] > len(status_msg[1]) - 1:
 		status_msg[0] = 0
@@ -631,7 +638,6 @@ async def status_change():
 async def on_raw_reaction_add(payload):
 	msg_id = payload.message_id
 	channel = bot.get_channel(payload.channel_id)
-	message = await channel.fetch_message(msg_id)
 	guild_id = payload.guild_id
 	guild = bot.get_guild(guild_id)
 	member = payload.member
@@ -692,14 +698,9 @@ async def startup_tasks():
 	bot.add_view(CreateProjectView())
 	bot.add_view(RulesAcceptView())
 
-	# await bot.get_channel(988778342457147402).send(embed=nextcord.Embed(title="Créer un projet", color=embed_color, description="Pour créer un salon pour votre projet, veuillez cliquer sur ce bouton ou utilisez la commande `/project create`.\nVous pouvez ensuite le modifier avec la commande `/project edit`"), view=CreateProjectView())
-	# print(await bot.get_channel(988898926507720754).create_invite(reason="Création d'un lien d'invitation permanent"))
 	bot.loop.create_task(update_stats())
 	kick_not_accept_rules.start()
 	status_change.start()
-
-
-startup_tasks.launched = False
 
 
 @bot.event
@@ -709,10 +710,8 @@ async def on_ready():
 	main_guild = bot.get_guild(988543675640455178)
 	projects_categ = main_guild.get_channel(988777897550573599)
 	welcome_channel = main_guild.get_channel(988882460601372784)
-
-	rules_msg = await main_guild.get_channel(988878746096377947).fetch_message(988891271198289970)
-
 	member_role = main_guild.get_role(988878382903214151)
+	rules_msg = await main_guild.get_channel(988878746096377947).fetch_message(988891271198289970)
 
 	print(f"@{bot.user} s'est connecté sur Discord.")
 
@@ -720,5 +719,5 @@ async def on_ready():
 		startup_tasks.launched = True
 		await startup_tasks()
 
-
+startup_tasks.launched = False
 bot.run(TOKEN)
