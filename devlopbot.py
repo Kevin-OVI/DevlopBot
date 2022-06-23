@@ -449,6 +449,8 @@ async def project_mute_cmd(interaction: nextcord.Interaction,
 	project_data["mutes"].append(user_id)
 	save_json()
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
+	bot.loop.create_task(try_send_dm(member,
+		embed=normal_embed(f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."), ephemeral=True)
 
 
@@ -465,6 +467,8 @@ async def project_unmute_cmd(interaction: nextcord.Interaction,
 	project_data["mutes"].remove(user_id)
 	save_json()
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
+	bot.loop.create_task(try_send_dm(member,
+		embed=normal_embed(f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
 
 
