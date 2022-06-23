@@ -238,6 +238,10 @@ def get_field_id(embed, name):
 
     return None
 
+async def hidden_pin(message: nextcord.Message, *,  reason=None):
+    await message.pin(reason=reason)
+    await message.channel.purge(check=lambda msg: msg.type == nextcord.MessageType.pins_add and msg.reference.message_id == message.id, bulk=False)
+
 
 class RawRequester:
     API_BASE = 'https://discord.com/api/v9'

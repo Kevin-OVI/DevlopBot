@@ -255,7 +255,7 @@ def generate_info_message(user, channel):
 async def send_info_message(user, channel):
 	channel_obj = get_textchannel(channel)
 	message = await channel_obj.send(embed=generate_info_message(user, channel))
-	bot.loop.create_task(message.pin(reason="Épinglage du message d'informations"))
+	bot.loop.create_task(hidden_pin(message, reason="Épinglage du message d'informations"))
 	return message
 
 
@@ -271,7 +271,7 @@ async def edit_info_message(user, channel):
 		bot.loop.create_task(message.edit(embed=embed))
 	except nextcord.errors.NotFound:
 		message = await channel_obj.send("Ne vous ai-je pas dit de ne pas supprimer ce message ?", embed=embed)
-		bot.loop.create_task(message.pin(reason="Épinglage du message d'informations"))
+		bot.loop.create_task(hidden_pin(message, reason="Épinglage du message d'informations"))
 	return message
 
 
