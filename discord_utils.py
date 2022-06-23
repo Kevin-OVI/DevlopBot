@@ -239,58 +239,6 @@ def get_field_id(embed, name):
     return None
 
 
-class FakeCtx:
-    def __init__(self, message):
-        self.message = message
-        self.send = message.channel.send
-        self.channel = message.channel
-        self.author = message.author
-        self.guild = message.guild
-        self.trigger_typing = message.channel.trigger_typing
-        self.reply = message.reply
-
-
-class FakeMsg:
-    channel: nextcord.TextChannel
-
-    def __init__(self, content, **kwargs):
-        for x in ('author', 'channel', 'attachments', 'embed'):
-            self.content = content
-            if x in kwargs.keys():
-                exec('self.' + x + ' = kwargs["' + x + '"]')
-            else:
-                exec('self.' + x + ' = None')
-        if self.channel:
-            self.guild = self.channel.guild
-        else:
-            self.guild = None
-        self.id = 0
-
-    def add_reaction(self, emoji_str):
-        pass
-
-    def remove_reaction(self, emoji_str, member):
-        pass
-
-    async def edit(self, **kwargs):
-        for x in ('content', 'embed'):
-            if x in kwargs.keys():
-                exec('self.' + x + ' = ' + kwargs[x])
-
-    async def delete(self):
-        self.__init__(None)
-
-    async def reply(self, content, embed=None):
-        if self.channel:
-            await self.channel.send(content, embed=embed)
-
-    async def pin(self):
-        pass
-
-    async def unpin(self):
-        pass
-
-
 class RawRequester:
     API_BASE = 'https://discord.com/api/v9'
     IMAGE_BASE = 'https://cdn.discordapp.com'
