@@ -385,7 +385,7 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
-	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."))
+	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."), ephemeral=True)
 
 
 @project_cmd.subcommand(name="remove-member", description="Permet de retirer un membre du projet")
@@ -408,7 +408,7 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
-	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."))
+	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."), ephemeral=True)
 
 
 @project_cmd.subcommand(name="edit", description="Permet de modifier le nom ou la description du projet")
@@ -449,7 +449,7 @@ async def project_mute_cmd(interaction: nextcord.Interaction,
 	project_data["mutes"].append(user_id)
 	save_json()
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
-	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."))
+	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."), ephemeral=True)
 
 
 @project_cmd.subcommand(name="unmute", description="Permet de supprimer la réduction au silence d'un membre")
@@ -465,7 +465,7 @@ async def project_unmute_cmd(interaction: nextcord.Interaction,
 	project_data["mutes"].remove(user_id)
 	save_json()
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
-	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."))
+	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
 
 
 @bot.slash_command(name="roleonreact", guild_ids=guild_ids)
