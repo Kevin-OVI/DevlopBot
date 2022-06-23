@@ -1,5 +1,7 @@
+import os
 from typing import Optional, Union
 
+import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -105,13 +107,16 @@ class ProjectTopicModal(ui.Modal):
 	async def callback(self, interaction):
 		await interaction.response.defer(ephemeral=True)
 		user_id_str = str(interaction.user.id)
-		channel = await projects_categ.create_text_channel(name=self.name_field.value, overwrites={interaction.user: project_member_perms},
-			topic=f"Projet de {interaction.user.mention}\n\n- {self.description_field.value}", reason="Création d'un projet")
+		name = self.name_field.value
+		description = self.description_field.value
+		channel = await projects_categ.create_text_channel(name=name, overwrites={interaction.user: project_member_perms},
+			topic=f"Projet de {interaction.user.mention}\n\n- {description}", reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
-		projects_data[user_id_str][channel_id_str] = {"name": self.name_field.value, "description": self.description_field.value, "members": [], "mutes": []}
+		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": []}
 		projects_data[user_id_str][channel_id_str]["info_message"] = (await send_info_message(interaction.user, channel)).id
 		save_json()
+		send_log(f"<@{user_id_str}> a créé le projet [{name}]({channel.jump_url})", "Création d'un projet", {"Description": description})
 		await interaction.followup.send(embed=validation_embed(f"Votre projet à été créé : {channel.mention}."), ephemeral=True)
 
 
@@ -131,14 +136,24 @@ class ProjectTopicEditModal(ProjectTopicModal):
 				await interaction.response.send_message(embed=error_embed("Le projet n'a pas été trouvé ! Il a peut-être été supprimé par un administrateur."), ephemeral=True)
 				return
 			creator_id, project_data = r
+			name = self.name_field.value
+			description = self.description_field.value
 
-			bot.loop.create_task(interaction.channel.edit(name=self.name_field.value,
-				topic=f"Projet de <@{creator_id}>\n\n- {self.description_field.value}", reason="Modification d'un projet"))
+			bot.loop.create_task(interaction.channel.edit(name=name,
+				topic=f"Projet de <@{creator_id}>\n\n- {description}", reason="Modification d'un projet"))
 
-			project_data["name"] = self.name_field.value
-			project_data["description"] = self.description_field.value
+			old_name = project_data["name"]
+			old_desctiption = project_data["description"]
+			project_data["name"] = name
+			project_data["description"] = description
 			project_data["info_message"] = (await edit_info_message(creator_id, channel)).id
 			save_json()
+			fields = {"Description": description}
+			if old_name != name:
+				fields["Ancien nom"] = old_name
+			if old_desctiption != description:
+				fields["Ancienne description"] = old_desctiption
+			send_log(f"{interaction.user.mention} a modifié le projet [{name}]({channel.jump_url}) de <@{creator_id}>", "Modification d'un projet", fields)
 			embed = validation_embed(f"Votre projet à été modifié.")
 			embed.set_footer(text="Le nom et la description du salon peuvent prendre quelques minutes à se modifier, à cause des ratelimits de discord.")
 			await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -309,6 +324,14 @@ def check_bot_owner():
 	return application_checks.check(lambda interaction: interaction.user.id == 894999665760665600)
 
 
+def send_log(message, title=nextcord.Embed.Empty, fields=None):
+	embed = normal_embed(message, title)
+	if fields:
+		for name, value in fields.items():
+			embed.add_field(name=name + " :", value=value, inline=False)
+	bot.loop.create_task(logs_channel.send(embed=embed, allowed_mentions=nextcord.AllowedMentions.none()))
+
+
 embed_color = 0xAD1457
 TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
@@ -385,6 +408,8 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
+	send_log(f"{interaction.user.mention} a ajouté {member.mention} aux membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>",
+		"Ajout d'un membre à un projet")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."), ephemeral=True)
 
 
@@ -408,6 +433,8 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
+	send_log(f"{interaction.user.mention} a retiré {member.mention} des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>",
+		"Retrait d'un membre d'un projet")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."), ephemeral=True)
 
 
@@ -424,9 +451,10 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 	await interaction.response.send_message(embed=question_embed("Êtes-vous sur de vouloir supprimer ce projet ?"), view=view, ephemeral=True)
 	await view.wait()
 	if view.value:
-		creator_id = find_project(interaction.channel)[0]
+		creator_id, project_data = find_project(interaction.channel)
 		del (projects_data[creator_id][get_id_str(interaction.channel)])
 		save_json()
+		send_log(f"{interaction.user.mention} a supprimé le projet `{project_data['name']}` de <@{creator_id}>", "Suppression d'un projet")
 		await interaction.channel.delete(reason="Suppression d'un projet")
 	else:
 		await interaction.edit_original_message(embed=normal_embed("Suppression du projet annulée"), view=None)
@@ -451,6 +479,8 @@ async def project_mute_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
+	send_log(f"{interaction.user.mention} a réduit {member.mention} au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>",
+		"Mute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."), ephemeral=True)
 
 
@@ -469,6 +499,8 @@ async def project_unmute_cmd(interaction: nextcord.Interaction,
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
 	bot.loop.create_task(try_send_dm(member,
 		embed=normal_embed(f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}>")))
+	send_log(f"{interaction.user.mention} a supprimé la réduction au silence de {member.mention} dans le projet [{project_data['name']}]({interaction.channel.jump_url}) \
+de <@{creator_id}>", "Unmute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
 
 
@@ -593,7 +625,7 @@ async def config_settings_cmd(interaction: nextcord.Interaction,
 			lines.append(f"{display_name}: {section[config_name]}")
 		await interaction.response.send_message(embed=normal_embed("\n".join(lines), "Paramètres actuels :"), ephemeral=True)
 	else:
-		for config_name, command_variable in (("max-projects", max_projects), ):
+		for config_name, command_variable in (("max-projects", max_projects),):
 			if command_variable is not None:
 				section[config_name] = command_variable
 		save_json()
@@ -705,11 +737,12 @@ async def startup_tasks():
 
 @bot.event
 async def on_ready():
-	global main_guild, projects_categ, welcome_channel, rules_msg, member_role
+	global main_guild, projects_categ, welcome_channel, rules_msg, member_role, logs_channel
 
 	main_guild = bot.get_guild(988543675640455178)
 	projects_categ = main_guild.get_channel(988777897550573599)
 	welcome_channel = main_guild.get_channel(988882460601372784)
+	logs_channel = main_guild.get_channel(int(os.getenv("LOG_CHANNEL")))
 	member_role = main_guild.get_role(988878382903214151)
 	rules_msg = await main_guild.get_channel(988878746096377947).fetch_message(988891271198289970)
 
@@ -718,6 +751,7 @@ async def on_ready():
 	if not startup_tasks.launched:
 		startup_tasks.launched = True
 		await startup_tasks()
+
 
 startup_tasks.launched = False
 bot.run(TOKEN)
