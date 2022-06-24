@@ -2,6 +2,7 @@ import sys
 import traceback
 from typing import Optional, Union
 
+import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -81,6 +82,41 @@ class RulesAcceptView(ui.View):
 			interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
 
 
+class RevisionView(ui.View):
+	view_name = f"{bot_name}:revision"
+
+	def __init__(self):
+		super().__init__(timeout=None)
+
+	@ui.button(label="Réouvrir au public", emoji="📤", style=nextcord.ButtonStyle.green, custom_id=f"{view_name}:reopen")
+	async def reopen_button(self, button, interaction):
+		if not is_moderator(interaction.user):
+			await interaction.response.send_message(embed=error_embed("Vous n'avez pas la permission de réouvrir ce projet au public."), ephemeral=True)
+			return
+
+		creator_id, project_data = find_project(interaction.channel)
+		if not project_data["held_for_review"]:
+			await interaction.response.send_message(embed=error_embed("Le projet n'est pas marqué comme `à examiner`"), ephemeral=True)
+			return
+		project_data["held_for_review"] = False
+		save_json()
+		overwrites = interaction.channel.overwrites
+		try:
+			del(overwrites[interaction.guild.default_role])
+		except KeyError:
+			pass
+		try:
+			del(overwrites[moderator_role])
+		except KeyError:
+			pass
+		bot.loop.create_task(interaction.channel.edit(category=projects_categ, overwrites=overwrites))
+		bot.loop.create_task(try_send_dm(get_member(creator_id),
+			embed=normal_embed(f"Le marquage de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré.")))
+		send_log(f"Le marquage `à examiner` du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> a été retiré par {interaction.user.mention}",
+			"Retrait de mise en examen")
+		await interaction.message.edit(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."), view=None)
+
+
 class ProjectTopicModal(ui.Modal):
 	modal_name = f"{bot_name}:project_topic"
 
@@ -113,7 +149,7 @@ class ProjectTopicModal(ui.Modal):
 			topic=f"Projet de {interaction.user.mention}\n\n- {description}", reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
-		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": []}
+		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": [], "held_for_review": False}
 		projects_data[user_id_str][channel_id_str]["info_message"] = (await send_info_message(interaction.user, channel)).id
 		save_json()
 		send_log(f"<@{user_id_str}> a créé le projet [{name}]({channel.jump_url})", "Création d'un projet", {"Description": description})
@@ -341,7 +377,7 @@ def check_bot_owner():
 	return application_checks.check(lambda interaction: interaction.user.id == 894999665760665600)
 
 
-def send_log(message, title=nextcord.Embed.Empty, fields=None):
+def send_log(message, title, fields=None):
 	embed = normal_embed(message, title)
 	if fields:
 		for name, value in fields.items():
@@ -354,7 +390,7 @@ TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
 project_ignore_channels = (988778342457147402, 988780418365014026)
 project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
-	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
+	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True, view_channel=True)
 project_mute_perms = nextcord.PermissionOverwrite(send_messages=False, use_slash_commands=False, send_messages_in_threads=False,
 	create_public_threads=False, create_private_threads=False, add_reactions=False)
 status_msg = [0, (
@@ -399,8 +435,12 @@ def check_project_member(func):
 	return overwrite
 
 
+def is_moderator(member):
+	return moderator_role in member.roles or has_guild_permissions(member, administrator=True)
+
+
 def check_is_moderator():
-	return application_checks.check(lambda interaction : moderator_role in interaction.user.roles or has_guild_permissions(interaction.user, administrator=True))
+	return application_checks.check(lambda interaction: is_moderator(interaction.user))
 
 
 @project_cmd.subcommand(name="create", description="Permet de créer un projet")
@@ -524,6 +564,26 @@ async def project_unmute_cmd(interaction: nextcord.Interaction,
 	send_log(f"{interaction.user.mention} a supprimé la réduction au silence de {member.mention} dans le projet [{project_data['name']}]({interaction.channel.jump_url}) \
 de <@{creator_id}>", "Unmute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
+
+
+@project_cmd.subcommand(name="hold_for_review", description="Permet de marquer un projet comme `à examiner`")
+@check_is_moderator()
+async def project_holdforreview_cmd(interaction: nextcord.Interaction):
+	creator_id, project_data = find_project(interaction.channel)
+	if project_data["held_for_review"]:
+		await interaction.response.send_message(embed=error_embed("Le projet est déjà marqué comme `à examiner`"), ephemeral=True)
+		return
+	project_data["held_for_review"] = True
+	save_json()
+	overwrites = interaction.channel.overwrites
+	overwrites[interaction.guild.default_role] = nextcord.PermissionOverwrite(view_channel=False)
+	overwrites[moderator_role] = nextcord.PermissionOverwrite(view_channel=True)
+	bot.loop.create_task(interaction.channel.edit(category=revision_categ, overwrites=overwrites))
+	bot.loop.create_task(try_send_dm(get_member(creator_id),
+		embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été marqué comme `à examiner`.\n\
+Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou administrateur doit l'examiner pour qu'il soit de nouveau accessible.")))
+	send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> à été marqué comme `à examiner` par {interaction.user.mention}", "Mise en examen")
+	await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=RevisionView())
 
 
 @bot.slash_command(name="roleonreact", guild_ids=guild_ids)
@@ -768,6 +828,7 @@ async def startup_tasks():
 	bot.add_modal(ProjectTopicEditModal())
 	bot.add_view(CreateProjectView())
 	bot.add_view(RulesAcceptView())
+	bot.add_view(RevisionView())
 
 	bot.loop.create_task(update_all_stats())
 	kick_not_accept_rules.start()
@@ -776,10 +837,11 @@ async def startup_tasks():
 
 @bot.event
 async def on_ready():
-	global main_guild, projects_categ, welcome_channel, rules_msg, member_role, logs_channel, member_stats_channel, projects_stats_channel, moderator_role
+	global main_guild, projects_categ, welcome_channel, rules_msg, member_role, logs_channel, member_stats_channel, projects_stats_channel, moderator_role, revision_categ
 
 	main_guild = bot.get_guild(988543675640455178)
 	projects_categ = main_guild.get_channel(988777897550573599)
+	revision_categ = main_guild.get_channel(989846265347047444)
 	welcome_channel = main_guild.get_channel(988882460601372784)
 	logs_channel = main_guild.get_channel(int(os.getenv("LOG_CHANNEL")))
 	member_stats_channel = main_guild.get_channel(988887221262221342)
