@@ -220,7 +220,7 @@ async def send_quit(member):
 
 
 async def update_member_stats():
-	new_name = f"- {len(main_guild.humans)} membres"
+	new_name = f"👨・{len(main_guild.humans)} membres"
 	if member_stats_channel.name != new_name:
 		await member_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
 
@@ -229,7 +229,7 @@ async def update_projects_stats():
 	total_projets = 0
 	for projets in projects_data.values():
 		total_projets += len(projets)
-	new_name = f"- {total_projets} projets"
+	new_name = f"⌨️・{total_projets} projets"
 	if projects_stats_channel.name != new_name:
 		await projects_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
 
