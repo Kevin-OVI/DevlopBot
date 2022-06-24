@@ -354,7 +354,7 @@ TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
 project_ignore_channels = (988778342457147402, 988780418365014026)
 project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
-	attach_files=True, manage_threads=True, manage_messages=True)
+	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
 project_mute_perms = nextcord.PermissionOverwrite(send_messages=False, use_slash_commands=False, send_messages_in_threads=False,
 	create_public_threads=False, create_private_threads=False, add_reactions=False)
 status_msg = [0, (
