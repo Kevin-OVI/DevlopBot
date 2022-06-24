@@ -323,7 +323,7 @@ async def edit_info_message(user, channel):
 
 
 def is_project_channel(channel: nextcord.abc.GuildChannel):
-	return channel.category == projects_categ and channel.id not in project_ignore_channels
+	return channel.category in (projects_categ, revision_categ) and channel.id not in project_ignore_channels
 
 
 @cache_return(1800)
