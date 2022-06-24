@@ -2,6 +2,7 @@ import sys
 import traceback
 from typing import Optional, Union
 
+import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -144,7 +145,7 @@ class ProjectTopicModal(ui.Modal):
 		user_id_str = str(interaction.user.id)
 		name = self.name_field.value
 		description = self.description_field.value
-		channel = await projects_categ.create_text_channel(name=name, overwrites={interaction.user: project_member_perms},
+		channel = await projects_categ.create_text_channel(name=name, overwrites={interaction.user: project_creator_perms},
 			topic=f"Projet de {interaction.user.mention}\n\n- {description}", reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
@@ -367,8 +368,11 @@ embed_color = 0xAD1457
 TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
 project_ignore_channels = (988778342457147402, 988780418365014026)
+
 project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
-	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True, view_channel=True)
+	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
+project_creator_perms = nextcord.PermissionOverwrite.from_pair(*project_member_perms.pair())
+project_creator_perms.update(view_channel=True)
 project_mute_perms = nextcord.PermissionOverwrite(send_messages=False, use_slash_commands=False, send_messages_in_threads=False,
 	create_public_threads=False, create_private_threads=False, add_reactions=False)
 status_msg = [0, (
