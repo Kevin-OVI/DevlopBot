@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
 
-from cache_data import cache_return, empty_cache
+from cache_data import cache_return, empty_cache, empty_function_cache
 from discord_utils import *
 
 load_dotenv()
@@ -606,7 +606,7 @@ async def project_transferproperty_cmd(interaction: nextcord.Interaction,
 		if not projects_data[old_owner_id]:
 			del [projects_data[old_owner_id]]
 		save_json()
-		empty_cache()
+		empty_function_cache(find_project)
 		bot.loop.create_task(edit_info_message(new_owner_id, interaction.channel))
 		bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez reçu la propriété du projet [{project_data['name']}]({interaction.channel.jump_url})")))
 		send_log(f"La propriété du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{old_owner_id}> à été transférée à {member.mention} par {interaction.user.mention}",

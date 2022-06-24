@@ -64,3 +64,10 @@ def cache_return(cache_max):
 
 def empty_cache():
 	_cache.clear()
+
+
+def empty_function_cache(function):
+	try:
+		del(_cache[function])
+	except KeyError:
+		pass
