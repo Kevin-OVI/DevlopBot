@@ -811,14 +811,14 @@ async def on_member_remove(member):
 async def on_application_command_error(ctx, error):
 	function = ctx.followup.send if ctx.response.is_done() else ctx.response.send_message
 	if isinstance(error, nextcord.errors.ApplicationCheckFailure):
-		await function(default_errors['permerr'], ephemeral=True)
+		await function(embed=normal_embed(default_errors['permerr']), ephemeral=True)
 
 	else:
 		if hasattr(error, 'original'):
 			error = error.original
 		form = "".join(traceback.format_exception(type(error), error, error.__traceback__))
 		try:
-			await function(default_errors['error'] + '\n```' + form.strip().split("\n")[-1] + '```', ephemeral=True)
+			await function(embed=normal_embed(default_errors['error'] + '\n```' + form.strip().split("\n")[-1] + '```'), ephemeral=True)
 		except nextcord.errors.NotFound:
 			pass
 		print(form, file=sys.stderr)
