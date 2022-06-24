@@ -399,6 +399,10 @@ def check_project_member(func):
 	return overwrite
 
 
+def check_is_moderator():
+	return application_checks.check(lambda interaction : moderator_role in interaction.user.roles or has_guild_permissions(interaction.user, administrator=True))
+
+
 @project_cmd.subcommand(name="create", description="Permet de créer un projet")
 async def project_create_cmd(interaction: nextcord.Interaction):
 	await create_project_start(interaction)
@@ -755,7 +759,7 @@ async def startup_tasks():
 
 @bot.event
 async def on_ready():
-	global main_guild, projects_categ, welcome_channel, rules_msg, member_role, logs_channel, member_stats_channel, projects_stats_channel
+	global main_guild, projects_categ, welcome_channel, rules_msg, member_role, logs_channel, member_stats_channel, projects_stats_channel, moderator_role
 
 	main_guild = bot.get_guild(988543675640455178)
 	projects_categ = main_guild.get_channel(988777897550573599)
@@ -764,6 +768,7 @@ async def on_ready():
 	member_stats_channel = main_guild.get_channel(988887221262221342)
 	projects_stats_channel = main_guild.get_channel(989628843629355149)
 	member_role = main_guild.get_role(988878382903214151)
+	moderator_role = main_guild.get_role(988818143453519954)
 	rules_msg = await main_guild.get_channel(988878746096377947).fetch_message(988891271198289970)
 
 	print(f"@{bot.user} s'est connecté sur Discord.")
