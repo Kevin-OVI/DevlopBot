@@ -381,7 +381,8 @@ status_msg = [0, (
 	(nextcord.ActivityType.watching, "%members% membres")
 )]
 
-bot = nextcord.Client(intents=nextcord.Intents(guilds=True, members=True, reactions=True), activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
+bot = nextcord.Client(intents=nextcord.Intents(guilds=True, members=True, reactions=True), status=nextcord.Status.idle,
+	activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
 
 
 @bot.slash_command(name="project", guild_ids=guild_ids)
