@@ -557,7 +557,7 @@ async def unhold_for_review(interaction, owner_id, project_data):
 		await interaction.response.send_message(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."))
 
 
-@project_cmd.subcommand(name="hold_for_review", description="Permet de marquer un projet comme `à examiner`")
+@project_cmd.subcommand(name="hold-for-review", description="Permet de marquer un projet comme `à examiner`")
 @check_is_moderator()
 async def project_holdforreview_cmd(interaction: nextcord.Interaction):
 	owner_id, project_data = find_project(interaction.channel)
