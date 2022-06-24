@@ -312,7 +312,7 @@ def is_project_channel(channel: nextcord.abc.GuildChannel):
 	return channel.category in (projects_categ, revision_categ) and channel.id not in project_ignore_channels
 
 
-@cache_return(1800)
+@cache_return(None)
 def find_project(channel):
 	channel_id = get_id_str(channel)
 	for user, projects in projects_data.items():
@@ -320,7 +320,7 @@ def find_project(channel):
 			return user, projects[channel_id]
 
 
-@cache_return(1800)
+@cache_return(None)
 def is_project_owner(user, channel):
 	user_id = get_id_str(user)
 	channel_id = get_id_str(channel)
