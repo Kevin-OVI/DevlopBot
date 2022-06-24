@@ -483,6 +483,8 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 	if view.value:
 		owner_id, project_data = find_project(interaction.channel)
 		del (projects_data[owner_id][get_id_str(interaction.channel)])
+		if not projects_data[owner_id]:
+			del [projects_data[owner_id]]
 		save_json()
 		send_log(f"{interaction.user.mention} a supprimé le projet `{project_data['name']}` de <@{owner_id}>", "Suppression d'un projet")
 		await interaction.channel.delete(reason="Suppression d'un projet")
@@ -575,6 +577,43 @@ async def project_holdforreview_cmd(interaction: nextcord.Interaction):
 Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou administrateur doit l'examiner pour qu'il soit de nouveau accessible.")))
 		send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}> à été marqué comme `à examiner` par {interaction.user.mention}", "Mise en examen")
 		await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=ReviewView())
+
+
+@project_cmd.subcommand(name="transfer-property", description="Permet de transférer la propriété du projet à un autre membre du serveur")
+@check_project_owner
+async def project_transferproperty_cmd(interaction: nextcord.Interaction,
+		member: nextcord.Member = nextcord.SlashOption(name="membre", description="Le membre auquel transférer la propriété", required=True),
+		stay_member: bool = nextcord.SlashOption(name="rester_membre", description="Souhaitez vous rester membre du projet après le transfert ?", required=True)):
+	old_owner_id, project_data = find_project(interaction.channel)
+	new_owner_id = get_id_str(member)
+	if old_owner_id == new_owner_id:
+		await interaction.response.send_message(embed=error_embed("Le membre est déjà propriétaire de ce projet"), ephemeral=True)
+		return
+
+	embed = question_embed(f"Êtes-vous sur de vouloir transférer la propriété du projet [{project_data['name']}]({interaction.channel.jump_url}) à {member.mention} ({member}) ?",
+		"Attention, vous ne pourrez pas annuler cette action")
+	embed.set_footer(text=f"En transférant la propriété du projet à {member.mention}, vous reconnaissez que celui-ci lui appartiendra officiellement")
+	view = ConfirmationView()
+	await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+	await view.wait()
+	if view.value:
+		channel_id = get_id_str(interaction.channel)
+		if stay_member:
+			project_data["members"].append(old_owner_id)
+		projects_data.setdefault(new_owner_id, {})
+		projects_data[new_owner_id][channel_id] = project_data
+		del (projects_data[old_owner_id][channel_id])
+		if not projects_data[old_owner_id]:
+			del [projects_data[old_owner_id]]
+		save_json()
+		empty_cache()
+		bot.loop.create_task(edit_info_message(new_owner_id, interaction.channel))
+		bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez reçu la propriété du projet [{project_data['name']}]({interaction.channel.jump_url})")))
+		send_log(f"La propriété du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{old_owner_id}> à été transférée à {member.mention} par {interaction.user.mention}",
+			"Transfert de propriété")
+		await interaction.edit_original_message(embed=validation_embed("Le transfert de propriété a été effectué"), view=None)
+	else:
+		await interaction.edit_original_message(embed=normal_embed("Le transfert de propriété a été annulé"), view=None)
 
 
 @bot.slash_command(name="roleonreact", guild_ids=guild_ids)
