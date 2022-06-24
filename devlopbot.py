@@ -67,12 +67,12 @@ class ConfirmationView(ui.View):
 
 
 class RulesAcceptView(ui.View):
-	view_name = "rules_accept"
+	view_name = f"{bot_name}:rules_accept"
 
 	def __init__(self):
 		super().__init__(timeout=None)
 
-	@ui.button(label="J'accepte", emoji="<:oui:988807617654702140>", style=nextcord.ButtonStyle.primary, custom_id=f"{bot_name}:{view_name}:accept")
+	@ui.button(label="J'accepte", emoji="<:oui:988807617654702140>", style=nextcord.ButtonStyle.primary, custom_id=f"{view_name}:accept")
 	async def accept_button(self, button, interaction):
 		if str(interaction.user.id) in data['join_not_rules']:
 			del (data['join_not_rules'][str(interaction.user.id)])
@@ -81,7 +81,7 @@ class RulesAcceptView(ui.View):
 			interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
 
 
-class RevisionView(ui.View):
+class ReviewView(ui.View):
 	view_name = f"{bot_name}:revision"
 
 	def __init__(self):
@@ -108,7 +108,7 @@ class RevisionView(ui.View):
 			del(overwrites[moderator_role])
 		except KeyError:
 			pass
-		bot.loop.create_task(interaction.channel.edit(category=projects_categ, overwrites=overwrites))
+		bot.loop.create_task(interaction.channel.edit(category=projects_categ, overwrites=overwrites, reason="Retrait du marquage comme `à examiner`"))
 		bot.loop.create_task(try_send_dm(get_member(creator_id),
 			embed=normal_embed(f"Le marquage de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré.")))
 		send_log(f"Le marquage `à examiner` du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> a été retiré par {interaction.user.mention}",
@@ -555,12 +555,12 @@ async def project_holdforreview_cmd(interaction: nextcord.Interaction):
 	overwrites = interaction.channel.overwrites
 	overwrites[interaction.guild.default_role] = nextcord.PermissionOverwrite(view_channel=False)
 	overwrites[moderator_role] = nextcord.PermissionOverwrite(view_channel=True)
-	bot.loop.create_task(interaction.channel.edit(category=revision_categ, overwrites=overwrites))
+	bot.loop.create_task(interaction.channel.edit(category=revision_categ, overwrites=overwrites, reason="Marquage comme `à examiner`"))
 	bot.loop.create_task(try_send_dm(get_member(creator_id),
 		embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été marqué comme `à examiner`.\n\
 Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou administrateur doit l'examiner pour qu'il soit de nouveau accessible.")))
 	send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> à été marqué comme `à examiner` par {interaction.user.mention}", "Mise en examen")
-	await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=RevisionView())
+	await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=ReviewView())
 
 
 @bot.slash_command(name="roleonreact", guild_ids=guild_ids)
@@ -741,12 +741,9 @@ async def update_stats():
 
 @bot.event
 async def on_raw_reaction_add(payload):
-	msg_id = payload.message_id
-	channel = bot.get_channel(payload.channel_id)
-	guild_id = payload.guild_id
-	guild = bot.get_guild(guild_id)
+	guild = bot.get_guild(payload.guild_id)
 	member = payload.member
-	reaction_emoji = payload.emoji
+	reaction_emoji = str(payload.emoji)
 
 	if not member:
 		return
@@ -754,26 +751,27 @@ async def on_raw_reaction_add(payload):
 	if member == bot.user:
 		return
 
-	msg_id_str = str(msg_id)
+	msg_id_str = str(payload.message_id)
 	if msg_id_str in data['roleonreact'].keys():
-		if str(reaction_emoji) in data['roleonreact'][msg_id_str].keys():
-			role = guild.get_role(data['roleonreact'][msg_id_str][str(reaction_emoji)])
+		if reaction_emoji in data['roleonreact'][msg_id_str].keys():
+			role = guild.get_role(data['roleonreact'][msg_id_str][reaction_emoji])
 			await member.add_roles(role, reason="Rôle-réaction")
 
 
 @bot.event
 async def on_raw_reaction_remove(payload):
-	msg_id = payload.message_id
-	guild_id = payload.guild_id
-	guild = bot.get_guild(guild_id)
-	msg_id_str = str(msg_id)
+	guild = bot.get_guild(payload.guild_id)
+	msg_id_str = str(payload.message_id)
 	member = guild.get_member(payload.user_id)
+	reaction_emoji = str(payload.emoji)
+
 	if not member:
 		return
+
 	if msg_id_str in data['roleonreact'].keys():
-		reaction_emoji = payload.emoji
-		if str(reaction_emoji) in data['roleonreact'][msg_id_str].keys():
-			role = guild.get_role(data['roleonreact'][msg_id_str][str(reaction_emoji)])
+
+		if reaction_emoji in data['roleonreact'][msg_id_str].keys():
+			role = guild.get_role(data['roleonreact'][msg_id_str][reaction_emoji])
 			await member.remove_roles(role, reason="Rôle-réaction")
 
 
@@ -817,7 +815,7 @@ async def startup_tasks():
 	bot.add_modal(ProjectTopicEditModal())
 	bot.add_view(CreateProjectView())
 	bot.add_view(RulesAcceptView())
-	bot.add_view(RevisionView())
+	bot.add_view(ReviewView())
 
 	update_stats.start()
 	kick_not_accept_rules.start()
