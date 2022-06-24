@@ -122,7 +122,7 @@ class ProjectTopicModal(ui.Modal):
 		self.add_item(self.name_field)
 
 		self.description_field = ui.TextInput(label="Description du projet", style=nextcord.TextInputStyle.paragraph,
-			custom_id=f"{self.modal_name}:description_field", min_length=10, max_length=970, required=True,
+			custom_id=f"{self.modal_name}:description_field", min_length=10, max_length=1024, required=True,
 			placeholder="Entrez ici une description pour votre projet", default_value=description)
 		self.add_item(self.description_field)
 
@@ -132,7 +132,7 @@ class ProjectTopicModal(ui.Modal):
 		name = self.name_field.value
 		description = self.description_field.value
 		channel = await projects_categ.create_text_channel(name=name, overwrites={interaction.user: project_owner_perms},
-			topic=f"Projet de {interaction.user.mention}\n\n- {description}", reason="Création d'un projet")
+			topic=f"Projet de {interaction.user.mention}\n\n{description[:988] + '...' if len(description) > 990 else description}", reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
 		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": [], "held_for_review": False}
@@ -162,7 +162,7 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			description = self.description_field.value
 
 			bot.loop.create_task(interaction.channel.edit(name=name,
-				topic=f"Projet de <@{owner_id}>\n\n- {description}", reason="Modification d'un projet"))
+				topic=f"Projet de <@{owner_id}>\n\n{description[:988] + '...' if len(description) > 990 else description}", reason="Modification d'un projet"))
 
 			old_name = project_data["name"]
 			old_desctiption = project_data["description"]
