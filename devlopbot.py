@@ -96,25 +96,11 @@ class ReviewView(ui.View):
 
 		creator_id, project_data = find_project(interaction.channel)
 		if not project_data["held_for_review"]:
+			bot.loop.create_task(interaction.message.delete())
 			await interaction.response.send_message(embed=error_embed("Le projet n'est pas marqué comme `à examiner`"), ephemeral=True)
 			return
-		project_data["held_for_review"] = False
-		save_json()
-		overwrites = interaction.channel.overwrites
-		try:
-			del(overwrites[interaction.guild.default_role])
-		except KeyError:
-			pass
-		try:
-			del(overwrites[moderator_role])
-		except KeyError:
-			pass
-		bot.loop.create_task(interaction.channel.edit(category=projects_categ, overwrites=overwrites, reason="Retrait du marquage comme `à examiner`"))
-		bot.loop.create_task(try_send_dm(get_member(creator_id),
-			embed=normal_embed(f"Le marquage de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré.")))
-		send_log(f"Le marquage `à examiner` du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> a été retiré par {interaction.user.mention}",
-			"Retrait de mise en examen")
-		await interaction.message.edit(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."), view=None)
+
+		await unhold_for_review(interaction, creator_id, project_data)
 
 
 class ProjectTopicModal(ui.Modal):
@@ -548,24 +534,47 @@ de <@{creator_id}>", "Unmute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
 
 
+async def unhold_for_review(interaction, creator_id, project_data):
+	project_data["held_for_review"] = False
+	save_json()
+	overwrites = interaction.channel.overwrites
+	try:
+		del(overwrites[interaction.guild.default_role])
+	except KeyError:
+		pass
+	try:
+		del(overwrites[moderator_role])
+	except KeyError:
+		pass
+	bot.loop.create_task(interaction.channel.edit(category=projects_categ, overwrites=overwrites, reason="Retrait du marquage comme `à examiner`"))
+	bot.loop.create_task(try_send_dm(get_member(creator_id),
+		embed=normal_embed(f"Le marquage de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré.")))
+	send_log(f"Le marquage `à examiner` du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> a été retiré par {interaction.user.mention}",
+		"Retrait de mise en examen")
+	if interaction.message:
+		await interaction.message.edit(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."), view=None)
+	else:
+		await interaction.response.send_message(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."))
+
+
 @project_cmd.subcommand(name="hold_for_review", description="Permet de marquer un projet comme `à examiner`")
 @check_is_moderator()
 async def project_holdforreview_cmd(interaction: nextcord.Interaction):
 	creator_id, project_data = find_project(interaction.channel)
 	if project_data["held_for_review"]:
-		await interaction.response.send_message(embed=error_embed("Le projet est déjà marqué comme `à examiner`"), ephemeral=True)
-		return
-	project_data["held_for_review"] = True
-	save_json()
-	overwrites = interaction.channel.overwrites
-	overwrites[interaction.guild.default_role] = nextcord.PermissionOverwrite(view_channel=False)
-	overwrites[moderator_role] = nextcord.PermissionOverwrite(view_channel=True)
-	bot.loop.create_task(interaction.channel.edit(category=revision_categ, overwrites=overwrites, reason="Marquage comme `à examiner`"))
-	bot.loop.create_task(try_send_dm(get_member(creator_id),
-		embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été marqué comme `à examiner`.\n\
+		await unhold_for_review(interaction, creator_id, project_data)
+	else:
+		project_data["held_for_review"] = True
+		save_json()
+		overwrites = interaction.channel.overwrites
+		overwrites[interaction.guild.default_role] = nextcord.PermissionOverwrite(view_channel=False)
+		overwrites[moderator_role] = nextcord.PermissionOverwrite(view_channel=True)
+		bot.loop.create_task(interaction.channel.edit(category=revision_categ, overwrites=overwrites, reason="Marquage comme `à examiner`"))
+		bot.loop.create_task(try_send_dm(get_member(creator_id),
+			embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été marqué comme `à examiner`.\n\
 Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou administrateur doit l'examiner pour qu'il soit de nouveau accessible.")))
-	send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> à été marqué comme `à examiner` par {interaction.user.mention}", "Mise en examen")
-	await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=ReviewView())
+		send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{creator_id}> à été marqué comme `à examiner` par {interaction.user.mention}", "Mise en examen")
+		await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=ReviewView())
 
 
 @bot.slash_command(name="roleonreact", guild_ids=guild_ids)
