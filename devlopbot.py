@@ -1,7 +1,7 @@
-import os
+import sys
+import traceback
 from typing import Optional, Union
 
-import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -744,6 +744,23 @@ async def on_member_remove(member):
 		bot.loop.create_task(send_quit(member))
 		bot.loop.create_task(update_member_stats())
 		bot.loop.create_task(remove_reactionroles_reactions(member))
+
+
+@bot.event
+async def on_application_command_error(ctx, error):
+	function = ctx.followup.send if ctx.response.is_done() else ctx.response.send_message
+	if isinstance(error, nextcord.errors.ApplicationCheckFailure):
+		await function(default_errors['permerr'], ephemeral=True)
+
+	else:
+		if hasattr(error, 'original'):
+			error = error.original
+		form = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+		try:
+			await function(default_errors['error'] + '\n```' + form.strip().split("\n")[-1] + '```', ephemeral=True)
+		except nextcord.errors.NotFound:
+			pass
+		print(form, file=sys.stderr)
 
 
 async def startup_tasks():
