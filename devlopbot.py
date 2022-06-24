@@ -2,7 +2,6 @@ import sys
 import traceback
 from typing import Optional, Union
 
-import nextcord
 from dotenv import load_dotenv
 from nextcord import ui
 from nextcord.ext import application_checks, tasks
@@ -154,7 +153,6 @@ class ProjectTopicModal(ui.Modal):
 		save_json()
 		send_log(f"<@{user_id_str}> a créé le projet [{name}]({channel.jump_url})", "Création d'un projet", {"Description": description})
 		await interaction.followup.send(embed=validation_embed(f"Votre projet à été créé : {channel.mention}."), ephemeral=True)
-		bot.loop.create_task(update_projects_stats())
 
 
 class ProjectTopicEditModal(ProjectTopicModal):
@@ -253,26 +251,6 @@ async def send_quit(member):
 	quit_msg.set_footer(text=f"Le serveur ne compte plus que {len(member.guild.humans)} membres")
 	quit_msg.set_thumbnail(url=member.display_avatar.url)
 	await welcome_channel.send(embed=quit_msg)
-
-
-async def update_member_stats():
-	new_name = f"👨・{len(main_guild.humans)} membres"
-	if member_stats_channel.name != new_name:
-		await member_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
-
-
-async def update_projects_stats():
-	total_projets = 0
-	for projets in projects_data.values():
-		total_projets += len(projets)
-	new_name = f"⌨️・{total_projets} projets"
-	if projects_stats_channel.name != new_name:
-		await projects_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
-
-
-async def update_all_stats():
-	await update_member_stats()
-	await update_projects_stats()
 
 
 async def create_project_start(interaction: nextcord.Interaction):
@@ -517,7 +495,6 @@ async def project_delete_cmd(interaction: nextcord.Interaction):
 		save_json()
 		send_log(f"{interaction.user.mention} a supprimé le projet `{project_data['name']}` de <@{creator_id}>", "Suppression d'un projet")
 		await interaction.channel.delete(reason="Suppression d'un projet")
-		bot.loop.create_task(update_projects_stats())
 	else:
 		await interaction.edit_original_message(embed=normal_embed("Suppression du projet annulée"), view=None)
 
@@ -748,6 +725,20 @@ async def status_change():
 		status_msg[0] = 0
 
 
+@tasks.loop(minutes=10)
+async def update_stats():
+	new_name = f"👨・{len(main_guild.humans)} membres"
+	if member_stats_channel.name != new_name:
+		await member_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
+
+	total_projets = 0
+	for projets in projects_data.values():
+		total_projets += len(projets)
+	new_name = f"⌨️・{total_projets} projets"
+	if projects_stats_channel.name != new_name:
+		await projects_stats_channel.edit(name=new_name, reason="Mise à jour des statistiques")
+
+
 @bot.event
 async def on_raw_reaction_add(payload):
 	msg_id = payload.message_id
@@ -793,7 +784,6 @@ async def on_member_join(member):
 			bot.loop.create_task(member.add_roles(988881883100217396))
 		else:
 			bot.loop.create_task(send_welcome(member))
-			bot.loop.create_task(update_member_stats())
 			data["join_not_rules"][str(member.id)] = time.time() + 7200
 			save_json()
 
@@ -802,7 +792,6 @@ async def on_member_join(member):
 async def on_member_remove(member):
 	if member.guild == main_guild and (not member.bot):
 		bot.loop.create_task(send_quit(member))
-		bot.loop.create_task(update_member_stats())
 		bot.loop.create_task(remove_reactionroles_reactions(member))
 
 
@@ -830,7 +819,7 @@ async def startup_tasks():
 	bot.add_view(RulesAcceptView())
 	bot.add_view(RevisionView())
 
-	bot.loop.create_task(update_all_stats())
+	update_stats.start()
 	kick_not_accept_rules.start()
 	status_change.start()
 
