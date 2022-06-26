@@ -57,6 +57,7 @@ def cache_return(cache_max):
 				_mutex.release()
 			return ret
 
+		overwrite.func = func
 		return overwrite
 
 	return deco
@@ -68,6 +69,6 @@ def empty_cache():
 
 def empty_function_cache(function):
 	try:
-		del(_cache[function])
+		del(_cache[getattr(function, "func", None)])
 	except KeyError:
 		pass
