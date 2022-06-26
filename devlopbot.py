@@ -601,9 +601,9 @@ async def project_transferproperty_cmd(interaction: nextcord.Interaction,
 		await interaction.response.send_message(embed=error_embed("Le membre est déjà propriétaire de ce projet"), ephemeral=True)
 		return
 
-	embed = question_embed(f"Êtes-vous sur de vouloir transférer la propriété du projet [{project_data['name']}]({interaction.channel.jump_url}) à {member.mention} ({member}) ?",
+	embed = question_embed(f"Êtes-vous sur de vouloir transférer la propriété du projet [{project_data['name']}]({interaction.channel.jump_url}) à {member} ({member.mention}) ?",
 		"Attention, vous ne pourrez pas annuler cette action")
-	embed.set_footer(text=f"En transférant la propriété du projet à {member.mention}, vous reconnaissez que celui-ci lui appartiendra officiellement")
+	embed.set_footer(text=f"En transférant la propriété du projet à {member}, vous reconnaissez que celui-ci lui appartiendra officiellement")
 	view = ConfirmationView()
 	await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 	await view.wait()
