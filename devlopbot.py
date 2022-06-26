@@ -612,6 +612,8 @@ async def project_transferproperty_cmd(interaction: nextcord.Interaction,
 		if stay_member:
 			project_data["members"].append(old_owner_id)
 			empty_function_cache(is_project_member)
+		if new_owner_id in project_data["members"]:
+			project_data["members"].remove(new_owner_id)
 		projects_data.setdefault(new_owner_id, {})
 		projects_data[new_owner_id][channel_id] = project_data
 		del (projects_data[old_owner_id][channel_id])
