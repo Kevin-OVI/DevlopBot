@@ -34,7 +34,7 @@ def _remove_value_later(func, argscache, cache_max):
 		_mutex.release()
 
 
-def cache_return(cache_max):
+def cache_return(cache_max=None):
 	def deco(func):
 		@wraps(func)
 		def overwrite(*args, **kwargs):

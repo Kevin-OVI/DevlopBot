@@ -181,18 +181,22 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@cache_return()
 def validation_embed(message, title=nextcord.Embed.Empty):
 	return embed_message("<:oui:988807617654702140> " + message, embed_color, title)
 
 
+@cache_return()
 def error_embed(message, title=nextcord.Embed.Empty):
 	return embed_message(":x: " + message, embed_color, title)
 
 
+@cache_return()
 def question_embed(message, title=nextcord.Embed.Empty):
 	return embed_message("❓ " + message, embed_color, title)
 
 
+@cache_return()
 def normal_embed(message, title=nextcord.Embed.Empty):
 	return embed_message(message, embed_color, title)
 
@@ -249,6 +253,7 @@ async def create_project_start(interaction: nextcord.Interaction):
 	await interaction.response.send_modal(ProjectTopicModal())
 
 
+@cache_return()
 def get_id_str(obj: Optional[Union[str, int, nextcord.abc.Snowflake]]) -> str:
 	if isinstance(obj, nextcord.abc.Snowflake):
 		return str(obj.id)
@@ -257,6 +262,7 @@ def get_id_str(obj: Optional[Union[str, int, nextcord.abc.Snowflake]]) -> str:
 	return obj
 
 
+@cache_return(1800)
 def get_member(obj: Union[str, int, nextcord.abc.Snowflake]) -> nextcord.Member:
 	if isinstance(obj, str):
 		return main_guild.get_member(int(obj))
@@ -265,6 +271,7 @@ def get_member(obj: Union[str, int, nextcord.abc.Snowflake]) -> nextcord.Member:
 	return main_guild.get_member(obj.id)
 
 
+@cache_return(1800)
 def get_textchannel(obj: Union[str, int, nextcord.abc.Snowflake]) -> nextcord.TextChannel:
 	if isinstance(obj, str):
 		return main_guild.get_channel(int(obj))
@@ -308,11 +315,12 @@ async def edit_info_message(user, channel):
 	return message
 
 
+@cache_return()
 def is_project_channel(channel: nextcord.abc.GuildChannel):
 	return channel.category in (projects_categ, revision_categ) and channel.id not in project_ignore_channels
 
 
-@cache_return(None)
+@cache_return()
 def find_project(channel):
 	channel_id = get_id_str(channel)
 	for user, projects in projects_data.items():
@@ -320,13 +328,14 @@ def find_project(channel):
 			return user, projects[channel_id]
 
 
-@cache_return(None)
+@cache_return()
 def is_project_owner(user, channel):
 	user_id = get_id_str(user)
 	channel_id = get_id_str(channel)
 	return channel_id in projects_data.get(user_id, {})
 
 
+@cache_return()
 def is_project_member(user, channel):
 	user_id = get_id_str(user)
 	if is_project_owner(user_id, channel):
@@ -434,6 +443,7 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 	project_data["members"].append(user_id)
 	save_json()
 
+	empty_function_cache(is_project_member)
 	bot.loop.create_task(edit_info_message(owner_id, interaction.channel))
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
 	bot.loop.create_task(try_send_dm(member,
@@ -459,6 +469,7 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 	project_data["members"].remove(get_id_str(member))
 	save_json()
 
+	empty_function_cache(is_project_member)
 	bot.loop.create_task(edit_info_message(owner_id, interaction.channel))
 	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
 	bot.loop.create_task(try_send_dm(member,
@@ -600,12 +611,14 @@ async def project_transferproperty_cmd(interaction: nextcord.Interaction,
 		channel_id = get_id_str(interaction.channel)
 		if stay_member:
 			project_data["members"].append(old_owner_id)
+			empty_function_cache(is_project_member)
 		projects_data.setdefault(new_owner_id, {})
 		projects_data[new_owner_id][channel_id] = project_data
 		del (projects_data[old_owner_id][channel_id])
 		if not projects_data[old_owner_id]:
 			del [projects_data[old_owner_id]]
 		save_json()
+		empty_function_cache(is_project_owner)
 		empty_function_cache(find_project)
 		bot.loop.create_task(edit_info_message(new_owner_id, interaction.channel))
 		bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez reçu la propriété du projet [{project_data['name']}]({interaction.channel.jump_url})")))
