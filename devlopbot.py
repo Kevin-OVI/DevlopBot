@@ -135,7 +135,7 @@ class ProjectTopicModal(ui.Modal):
 			topic=f"Projet de {interaction.user.mention}\n\n{description[:988] + '...' if len(description) > 990 else description}", reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
-		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": [], "held_for_review": False}
+		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": [], "held_for_review": False, "archived": False}
 		projects_data[user_id_str][channel_id_str]["info_message"] = (await send_info_message(interaction.user, channel)).id
 		save_json()
 		send_log(f"<@{user_id_str}> a créé le projet [{name}]({channel.jump_url})", "Création d'un projet", {"Description": description})
@@ -843,6 +843,28 @@ async def on_raw_reaction_remove(payload):
 			await member.remove_roles(role, reason="Rôle-réaction")
 
 
+def task_archive_projects(member, archive, do_not_save = False):
+	member_id = get_id_str(member)
+	member_projects = projects_data.get(member_id, {})
+	save = False
+	for channel_id, project_data in member_projects.items():
+		if project_data["archived"] != archive:
+			channel = get_textchannel(channel_id)
+			if archive:
+				bot.loop.create_task(channel.set_permissions(main_guild.default_role, send_messages=False, reason="Archivage du projet"))
+				bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été archivé car son propriétaire a quitté le serveur.")))
+				send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été archivé car il a quitté le serveur", "Archivage d'un projet")
+			else:
+				bot.loop.create_task(channel.set_permissions(main_guild.default_role, send_messages=None, reason="Désarchivage du projet"))
+				bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été désarchivé car son propriétaire a de nouveau rejoint le serveur.")))
+				send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été désarchivé car il a de nouveau rejoint le serveur", "Désarchivage d'un projet")
+			project_data["archived"] = archive
+			save = True
+
+	if save and (not do_not_save):
+		save_json()
+
+
 @bot.event
 async def on_member_join(member):
 	if member.guild == main_guild:
@@ -850,6 +872,7 @@ async def on_member_join(member):
 			bot.loop.create_task(member.add_roles(988881883100217396))
 		else:
 			bot.loop.create_task(send_welcome(member))
+			task_archive_projects(member, False, True)
 			data["join_not_rules"][str(member.id)] = time.time() + 7200
 			save_json()
 
@@ -859,6 +882,7 @@ async def on_member_remove(member):
 	if member.guild == main_guild and (not member.bot):
 		bot.loop.create_task(send_quit(member))
 		bot.loop.create_task(remove_reactionroles_reactions(member))
+		task_archive_projects(member, True)
 
 
 @bot.event
