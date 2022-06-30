@@ -168,7 +168,7 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			old_desctiption = project_data["description"]
 			project_data["name"] = name
 			project_data["description"] = description
-			project_data["info_message"] = (await edit_info_message(owner_id, channel)).id
+			bot.loop.create_task(edit_info_message(owner_id, channel))
 			save_json()
 			fields = {"Description": description}
 			if old_name != name:
@@ -269,6 +269,8 @@ async def edit_info_message(user, channel):
 	except nextcord.errors.NotFound:
 		message = await channel_obj.send("Ne vous ai-je pas dit de ne pas supprimer ce message ?", embed=embed)
 		bot.loop.create_task(hidden_pin(message, reason="Épinglage du message d'informations"))
+		project_data["info_message"] = message.id
+		save_json()
 	return message
 
 
@@ -341,7 +343,7 @@ status_msg = [0, (
 	(nextcord.ActivityType.watching, "%members% membres")
 )]
 
-bot = nextcord.Client(intents=nextcord.Intents(guilds=True, members=True, reactions=True), status=nextcord.Status.idle,
+bot = nextcord.Client(intents=nextcord.Intents(guilds=True, members=True, reactions=True, messages=True), status=nextcord.Status.idle,
 	activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
 
 
@@ -883,6 +885,20 @@ async def on_application_command_error(ctx, error):
 		except nextcord.errors.NotFound:
 			pass
 		print(form, file=sys.stderr)
+
+
+@bot.event
+async def on_raw_message_delete(payload):
+	print(payload.guild_id, payload.channel_id, payload.message_id, payload.cached_message)
+	if payload.guild_id == main_guild.id:
+		print("In guild")
+		r = find_project(payload.channel_id)
+		if r is not None:
+			owner_id, project_data = r
+			print("Found project", owner_id, project_data["name"])
+			if payload.message_id == project_data["info_message"]:
+				print("Is info message")
+				await edit_info_message(owner_id, payload.channel_id)
 
 
 async def startup_tasks():
