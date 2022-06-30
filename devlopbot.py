@@ -201,49 +201,6 @@ def normal_embed(message, title=nextcord.Embed.Empty):
 	return embed_message(message, embed_color, title)
 
 
-def base_cmd_signature(func):
-	async def overwrite(interaction):
-		return await func(interaction)
-
-	return overwrite
-
-
-def member_cmd_signature(*, name="membre", description, required=False):
-	def decorator(func):
-		async def overwrite(interaction, member: nextcord.Member = nextcord.SlashOption(name=name, description=description, required=required)):
-			return await func(interaction, member=member)
-
-		return overwrite
-
-	return decorator
-
-
-async def remove_reactionroles_reactions(member):
-	for channel in member.guild.text_channels:
-		for message_id in data['roleonreact']:
-			for emoji_str in data['roleonreact'][message_id]:
-				try:
-					message = await channel.fetch_message(message_id)
-					if message:
-						await message.remove_reaction(emoji_str, member)
-				except nextcord.errors.NotFound:
-					pass
-
-
-async def send_welcome(member):
-	welcome_msg = nextcord.Embed(color=embed_color, title=f"Bienvenue {member}", description=f"Bienvenue {member.mention}, et merci à toi !!")
-	welcome_msg.set_footer(text=f"Le serveur compte maintenant {len(member.guild.humans)} membres !")
-	welcome_msg.set_thumbnail(url=member.display_avatar.url)
-	await welcome_channel.send(embed=welcome_msg)
-
-
-async def send_quit(member):
-	quit_msg = nextcord.Embed(color=embed_color, title=f"Au revoir {member}", description=f"{member.mention} a malhereusement quitté le serveur. On espère le revoir vite :cry:")
-	quit_msg.set_footer(text=f"Le serveur ne compte plus que {len(member.guild.humans)} membres")
-	quit_msg.set_thumbnail(url=member.display_avatar.url)
-	await welcome_channel.send(embed=quit_msg)
-
-
 async def create_project_start(interaction: nextcord.Interaction):
 	user_data = data["projects"].get(str(interaction.user.id))
 	max_projects = data["config"]["max-projects"]
@@ -359,6 +316,14 @@ def send_log(message, title, fields=None):
 	bot.loop.create_task(logs_channel.send(embed=embed, allowed_mentions=nextcord.AllowedMentions.none()))
 
 
+def is_moderator(member):
+	return moderator_role in member.roles or has_guild_permissions(member, administrator=True)
+
+
+def check_is_moderator():
+	return application_checks.check(lambda interaction: is_moderator(interaction.user))
+
+
 embed_color = 0xAD1457
 TOKEN = os.getenv('TOKEN_DEVLOPBOT')
 guild_ids = [895005331980185640, 988543675640455178]
@@ -411,14 +376,6 @@ def check_project_member(func):
 		return await func(interaction, *args, **kwargs)
 
 	return overwrite
-
-
-def is_moderator(member):
-	return moderator_role in member.roles or has_guild_permissions(member, administrator=True)
-
-
-def check_is_moderator():
-	return application_checks.check(lambda interaction: is_moderator(interaction.user))
 
 
 @project_cmd.subcommand(name="create", description="Permet de créer un projet")
@@ -865,23 +822,49 @@ def task_archive_projects(member, archive, do_not_save = False):
 		save_json()
 
 
+async def task_remove_reactionroles_reactions(member):
+	for channel in member.guild.text_channels:
+		for message_id in data['roleonreact']:
+			for emoji_str in data['roleonreact'][message_id]:
+				try:
+					message = await channel.fetch_message(message_id)
+					if message:
+						await message.remove_reaction(emoji_str, member)
+				except nextcord.errors.NotFound:
+					pass
+
+
+async def task_send_welcome(member):
+	welcome_msg = nextcord.Embed(color=embed_color, title=f"Bienvenue {member}", description=f"Bienvenue {member.mention}, et merci à toi !!")
+	welcome_msg.set_footer(text=f"Le serveur compte maintenant {len(member.guild.humans)} membres !")
+	welcome_msg.set_thumbnail(url=member.display_avatar.url)
+	await welcome_channel.send(embed=welcome_msg)
+
+
 @bot.event
 async def on_member_join(member):
 	if member.guild == main_guild:
 		if member.bot:
 			bot.loop.create_task(member.add_roles(988881883100217396))
 		else:
-			bot.loop.create_task(send_welcome(member))
+			bot.loop.create_task(task_send_welcome(member))
 			task_archive_projects(member, False, True)
 			data["join_not_rules"][str(member.id)] = time.time() + 7200
 			save_json()
 
 
+async def task_send_quit(member):
+	quit_msg = nextcord.Embed(color=embed_color, title=f"Au revoir {member}", description=f"{member.mention} a malhereusement quitté le serveur. On espère le revoir vite :cry:")
+	quit_msg.set_footer(text=f"Le serveur ne compte plus que {len(member.guild.humans)} membres")
+	quit_msg.set_thumbnail(url=member.display_avatar.url)
+	await welcome_channel.send(embed=quit_msg)
+
+
 @bot.event
 async def on_member_remove(member):
 	if member.guild == main_guild and (not member.bot):
-		bot.loop.create_task(send_quit(member))
-		bot.loop.create_task(remove_reactionroles_reactions(member))
+		bot.loop.create_task(task_send_quit(member))
+		bot.loop.create_task(task_remove_reactionroles_reactions(member))
 		task_archive_projects(member, True)
 
 
