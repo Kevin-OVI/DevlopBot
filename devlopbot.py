@@ -889,15 +889,11 @@ async def on_application_command_error(ctx, error):
 
 @bot.event
 async def on_raw_message_delete(payload):
-	print(payload.guild_id, payload.channel_id, payload.message_id, payload.cached_message)
 	if payload.guild_id == main_guild.id:
-		print("In guild")
 		r = find_project(payload.channel_id)
 		if r is not None:
 			owner_id, project_data = r
-			print("Found project", owner_id, project_data["name"])
 			if payload.message_id == project_data["info_message"]:
-				print("Is info message")
 				await edit_info_message(owner_id, payload.channel_id)
 
 
