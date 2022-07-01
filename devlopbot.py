@@ -352,12 +352,21 @@ async def project_cmd():
 	pass
 
 
-def check_project_owner(func):
+def check_is_project(func):
 	@wraps(func)
 	async def overwrite(interaction, *args, **kwargs):
 		if not is_project_channel(interaction.channel):
 			await interaction.response.send_message(embed=error_embed("La commande ne peut pas être exécutée ici."), ephemeral=True)
 			return
+		await func(interaction, *args, **kwargs)
+
+	return overwrite
+
+
+def check_project_owner(func):
+	@check_is_project
+	@wraps(func)
+	async def overwrite(interaction, *args, **kwargs):
 		if (not is_project_owner(interaction.user, interaction.channel)) and has_guild_permissions(interaction.user, administrator=False):
 			await interaction.response.send_message(embed=error_embed("Vous devez être le propriétaire du projet pour effectuer cette action."), ephemeral=True)
 			return
@@ -367,11 +376,9 @@ def check_project_owner(func):
 
 
 def check_project_member(func):
+	@check_is_project
 	@wraps(func)
 	async def overwrite(interaction, *args, **kwargs):
-		if not is_project_channel(interaction.channel):
-			await interaction.response.send_message(embed=error_embed("La commande ne peut pas être exécutée ici."), ephemeral=True)
-			return
 		if (not is_project_member(interaction.user, interaction.channel)) and has_guild_permissions(interaction.user, administrator=False):
 			await interaction.response.send_message(embed=error_embed("Vous devez être un membre du projet pour effectuer cette action."), ephemeral=True)
 			return
@@ -531,6 +538,7 @@ async def unhold_for_review(interaction, owner_id, project_data):
 
 @project_cmd.subcommand(name="hold-for-review", description="Permet de marquer un projet comme `à examiner`")
 @check_is_moderator()
+@check_is_project
 async def project_holdforreview_cmd(interaction: nextcord.Interaction):
 	owner_id, project_data = find_project(interaction.channel)
 	if project_data["held_for_review"]:
