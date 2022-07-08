@@ -1,8 +1,11 @@
+import sys
 from functools import wraps
 
 import nextcord
 from mcstatus import JavaServer
 from nextcord.ext import commands
+from urllib.error import HTTPError
+from threading import Lock
 
 from python_utils import *
 
@@ -215,6 +218,9 @@ async def autocomplete_duration_noperm(interaction, param):
 
         return ret
 
+async def cog_autocomplete_duration_noperm(cog, interaction, param):
+    return await autocomplete_duration_noperm(interaction, param)
+
 
 async def autocomplete_duration(interaction: nextcord.Interaction, param):
     if param == "":
@@ -224,6 +230,9 @@ async def autocomplete_duration(interaction: nextcord.Interaction, param):
         return ["perm"]
 
     return autocomplete_duration_noperm(interaction, param)
+
+async def cog_autocomplete_duration(cog, interaction, param):
+    return await autocomplete_duration(interaction, param)
 
 async def get_first_message(channel: nextcord.TextChannel):
     messages = await channel.history(limit=1, oldest_first=True).flatten()
@@ -246,14 +255,44 @@ async def hidden_pin(message: nextcord.Message, *,  reason=None):
 class RawRequester:
     API_BASE = 'https://discord.com/api/v9'
     IMAGE_BASE = 'https://cdn.discordapp.com'
-    bot_headers = headers_json.copy()
-    bot_headers['User-Agent'] = 'DiscordBot (https://github.com/nextcord/nextcord/2.0.0a2) Python/3.9 aiohttp/3.7.4'
+    base_bot_headers = headers_json.copy()
+    base_bot_headers['User-Agent'] = f'DiscordBot (raw) Python/{sys.version_info[0]}.{sys.version_info[1]} urlib.request/{request.__version__}'
+    
     def __init__(self, token):
+        self.bot_headers = self.__class__.base_bot_headers.copy()
         self.bot_headers['Authorization'] = f'Bot {token}'
+        self._mutex = Lock()
+        self._ratelimit = None
 
     @async_function
-    def send_base_request(self, method: str, url: str, data=None, headers=None):
-        return request.urlopen(request.Request(method=method, url=url, data=data, headers=headers)).read()
+    def _ratelimit_request(self, *args, **kwargs):
+        self._mutex.acquire()
+        if self._ratelimit is not None:
+            time.sleep(self._ratelimit+0.5)
+            self._ratelimit = None
+        try:
+            while 1:
+                try:
+                    req = request.urlopen(request.Request(*args, **kwargs))
+                    r1 = req.headers["X-RateLimit-Remaining"]
+                    if r1:
+                        if int(r1) <= 0:
+                            r2 = req.headers["X-RateLimit-Reset-After"]
+                            if r2:
+                                self._ratelimit = float(r2)
+                    return req
+                except HTTPError as e:
+                    if e.getcode() == 429:
+                        retry_after = int(e.headers["Retry-After"])
+                        print(f"Ratelimit for {retry_after} seconds.", file=sys.stderr)
+                        time.sleep(retry_after)
+                    else:
+                        raise
+        finally:
+            self._mutex.release()
+
+    async def send_base_request(self, method: str, url: str, data=None, headers=None):
+        return await self._ratelimit_request(method=method, url=url, data=data, headers=headers).read()
 
 
     async def send_image_request(self, path):
@@ -263,13 +302,17 @@ class RawRequester:
         return await self.send_base_request('GET', url, None, headers)
 
 
-    async def send_bot_request(self, method: str, path: str, data=None):
+    async def send_bot_request(self, method: str, path: str, data=None, headers=None):
         if not path.startswith("/"):
             path = "/" + path
         url = self.API_BASE + path
         if data:
             data = json.dumps(data).encode()
 
-        r = (await self.send_base_request(method, url, data, self.bot_headers)).decode()
+        final_headers = self.bot_headers.copy()
+        if headers != None:
+            final_headers.update(headers)
+
+        r = (await self.send_base_request(method, url, data, final_headers)).decode()
         if r:
             return json.loads(r)
