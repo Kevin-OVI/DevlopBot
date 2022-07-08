@@ -846,10 +846,10 @@ def task_project_perms(member, archive, do_not_save = False):
 
 		elif not archive:
 			for channel_id, project_data in member_projects.items():
-				if member_id in projects_data["members"]:
+				if member_id in project_data["members"]:
 					channel = get_textchannel(channel_id)
 					bot.loop.create_task(channel.set_permissions(member, overwrite=project_member_perms, reason="Ré-ajout d'un membre au projet"))
-				elif member_id in projects_data["mutes"]:
+				elif member_id in project_data["mutes"]:
 					channel = get_textchannel(channel_id)
 					bot.loop.create_task(channel.set_permissions(member, overwrite=project_mute_perms, reason="Re-mute d'un membre"))
 
