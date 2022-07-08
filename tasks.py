@@ -5,10 +5,8 @@ from nextcord.ext import commands, tasks
 
 from data_file import data, projects_data, save_json
 from discord_utils import send_dm
-from modals import ProjectTopicEditModal, ProjectTopicModal
 from python_utils import get_timestamp, super_replace
 from variables import bot, discord_variables, embed_color
-from views import CreateProjectView, ReviewView, RulesAcceptView
 
 
 class TasksCog(commands.Cog):
@@ -26,15 +24,14 @@ class TasksCog(commands.Cog):
 	async def on_ready(self):
 		if not self.started:
 			self.started = True
-			self.kick_not_accept_rules.start()
-			self.status_change.start()
-			self.update_stats.start()
+			bot.dispatch("first_ready")
 
-			bot.add_modal(ProjectTopicModal())
-			bot.add_modal(ProjectTopicEditModal())
-			bot.add_view(CreateProjectView())
-			bot.add_view(RulesAcceptView())
-			bot.add_view(ReviewView())
+	@commands.Cog.listener()
+	async def on_first_ready(self):
+		self.kick_not_accept_rules.start()
+		self.status_change.start()
+		self.update_stats.start()
+
 
 	@tasks.loop(minutes=1)
 	async def kick_not_accept_rules(self):

@@ -9,14 +9,6 @@ load_dotenv()
 bot_name = "devlopbot"
 embed_color = 0xAD1457
 
-project_ignore_channels = (988778342457147402, 988780418365014026)
-project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
-	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
-project_owner_perms = nextcord.PermissionOverwrite.from_pair(*project_member_perms.pair())
-project_owner_perms.update(view_channel=True)
-project_mute_perms = nextcord.PermissionOverwrite(send_messages=False, use_slash_commands=False, send_messages_in_threads=False,
-	create_public_threads=False, create_private_threads=False, add_reactions=False)
-
 bot = commands.Bot(intents=nextcord.Intents(guilds=True, members=True, reactions=True, messages=True), status=nextcord.Status.idle,
 	activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
 
@@ -48,3 +40,4 @@ class DiscordVariables(commands.Cog):
 
 
 discord_variables = DiscordVariables()
+guild_ids = [895005331980185640, 988543675640455178]
