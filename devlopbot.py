@@ -78,8 +78,9 @@ class RulesAcceptView(ui.View):
 		if str(interaction.user.id) in data['join_not_rules']:
 			del (data['join_not_rules'][str(interaction.user.id)])
 			save_json()
-		await asyncio.gather(interaction.user.add_roles(member_role, reason="Le membre a accepté les règles"),
-			interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
+		bot.loop.create_task(interaction.user.add_roles(member_role, reason="Le membre a accepté les règles"))
+		bot.loop.create_task(interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
+		bot.dispatch("rules_accept", interaction.user)
 
 
 class ReviewView(ui.View):
@@ -881,8 +882,6 @@ async def on_member_join(member):
 		if member.bot:
 			bot.loop.create_task(member.add_roles(988881883100217396))
 		else:
-			bot.loop.create_task(task_send_welcome(member))
-			task_project_perms(member, False, True)
 			data["join_not_rules"][str(member.id)] = time.time() + 7200
 			save_json()
 
@@ -897,9 +896,13 @@ async def task_send_quit(member):
 @bot.event
 async def on_member_remove(member):
 	if member.guild == main_guild and (not member.bot):
-		bot.loop.create_task(task_send_quit(member))
-		bot.loop.create_task(task_remove_reactionroles_reactions(member))
-		task_project_perms(member, True)
+		member_id_str = get_id_str(member)
+		if member_id_str in data['join_not_rules']:
+			del(data['join_not_rules'][member_id_str])
+		else:
+			bot.loop.create_task(task_send_quit(member))
+			bot.loop.create_task(task_remove_reactionroles_reactions(member))
+			task_project_perms(member, True)
 
 
 @bot.event
@@ -927,6 +930,12 @@ async def on_raw_message_delete(payload):
 			owner_id, project_data = r
 			if payload.message_id == project_data["info_message"]:
 				await edit_info_message(owner_id, payload.channel_id)
+
+
+@bot.event
+async def on_rules_accept(member):
+	bot.loop.create_task(task_send_welcome(member))
+	task_project_perms(member, False, True)
 
 
 async def startup_tasks():
