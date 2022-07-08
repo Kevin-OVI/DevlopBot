@@ -78,9 +78,9 @@ class RulesAcceptView(ui.View):
 		if str(interaction.user.id) in data['join_not_rules']:
 			del (data['join_not_rules'][str(interaction.user.id)])
 			save_json()
+			bot.dispatch("rules_accept", interaction.user)
 		bot.loop.create_task(interaction.user.add_roles(member_role, reason="Le membre a accepté les règles"))
 		bot.loop.create_task(interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
-		bot.dispatch("rules_accept", interaction.user)
 
 
 class ReviewView(ui.View):
