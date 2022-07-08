@@ -387,6 +387,10 @@ def check_project_member(func):
 	return overwrite
 
 
+def is_user_on_guild(user):
+	return get_member(user) is not None
+
+
 @project_cmd.subcommand(name="create", description="Permet de créer un projet")
 async def project_create_cmd(interaction: nextcord.Interaction):
 	await create_project_start(interaction)
@@ -411,9 +415,10 @@ async def project_addmember_cmd(interaction: nextcord.Interaction,
 
 	empty_function_cache(is_project_member)
 	bot.loop.create_task(edit_info_message(owner_id, interaction.channel))
-	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
-	bot.loop.create_task(try_send_dm(member,
-		embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+	if is_user_on_guild(member):
+		bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
+		bot.loop.create_task(try_send_dm(member,
+			embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 	send_log(f"{interaction.user.mention} a ajouté {member.mention} aux membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 		"Ajout d'un membre à un projet")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."), ephemeral=True)
@@ -437,9 +442,10 @@ async def project_removemember_cmd(interaction: nextcord.Interaction,
 
 	empty_function_cache(is_project_member)
 	bot.loop.create_task(edit_info_message(owner_id, interaction.channel))
-	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
-	bot.loop.create_task(try_send_dm(member,
-		embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+	if is_user_on_guild(member):
+		bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
+		bot.loop.create_task(try_send_dm(member,
+			embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 	send_log(f"{interaction.user.mention} a retiré {member.mention} des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 		"Retrait d'un membre d'un projet")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."), ephemeral=True)
@@ -485,9 +491,10 @@ async def project_mute_cmd(interaction: nextcord.Interaction,
 
 	project_data["mutes"].append(user_id)
 	save_json()
-	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
-	bot.loop.create_task(try_send_dm(member,
-		embed=normal_embed(f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+	if is_user_on_guild(member):
+		bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
+		bot.loop.create_task(try_send_dm(member,
+			embed=normal_embed(f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 	send_log(f"{interaction.user.mention} a réduit {member.mention} au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 		"Mute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."), ephemeral=True)
@@ -505,9 +512,10 @@ async def project_unmute_cmd(interaction: nextcord.Interaction,
 
 	project_data["mutes"].remove(user_id)
 	save_json()
-	bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
-	bot.loop.create_task(try_send_dm(member,
-		embed=normal_embed(f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+	if is_user_on_guild(member):
+		bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
+		bot.loop.create_task(try_send_dm(member,
+			embed=normal_embed(f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 	send_log(f"{interaction.user.mention} a supprimé la réduction au silence de {member.mention} dans le projet [{project_data['name']}]({interaction.channel.jump_url}) \
 de <@{owner_id}>", "Unmute d'un membre")
 	await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
@@ -562,6 +570,9 @@ Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou adminis
 async def project_transferproperty_cmd(interaction: nextcord.Interaction,
 		member: nextcord.Member = nextcord.SlashOption(name="membre", description="Le membre auquel transférer la propriété", required=True),
 		stay_member: bool = nextcord.SlashOption(name="rester_membre", description="Souhaitez vous rester membre du projet après le transfert ?", required=True)):
+	if not is_user_on_guild(member):
+		await interaction.response.send_message(embed=error_embed("L'utilisateur n'est pas présent sur le serveur."), ephemeral=True)
+		return
 	old_owner_id, project_data = find_project(interaction.channel)
 	new_owner_id = get_id_str(member)
 	if old_owner_id == new_owner_id:
@@ -810,23 +821,36 @@ async def on_raw_reaction_remove(payload):
 			await member.remove_roles(role, reason="Rôle-réaction")
 
 
-def task_archive_projects(member, archive, do_not_save = False):
+def task_project_perms(member, archive, do_not_save = False):
 	member_id = get_id_str(member)
-	member_projects = projects_data.get(member_id, {})
 	save = False
-	for channel_id, project_data in member_projects.items():
-		if project_data["archived"] != archive:
-			channel = get_textchannel(channel_id)
-			if archive:
-				bot.loop.create_task(channel.set_permissions(main_guild.default_role, send_messages=False, reason="Archivage du projet"))
-				bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été archivé car son propriétaire a quitté le serveur.")))
-				send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été archivé car il a quitté le serveur", "Archivage d'un projet")
-			else:
-				bot.loop.create_task(channel.set_permissions(main_guild.default_role, send_messages=None, reason="Désarchivage du projet"))
-				bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été désarchivé car son propriétaire a de nouveau rejoint le serveur.")))
-				send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été désarchivé car il a de nouveau rejoint le serveur", "Désarchivage d'un projet")
-			project_data["archived"] = archive
-			save = True
+	for owner_id, member_projects in projects_data.items():
+		if member_id == owner_id:
+			for channel_id, project_data in member_projects.items():
+				if project_data["archived"] != archive:
+					channel = get_textchannel(channel_id)
+					if archive:
+						bot.loop.create_task(channel.set_permissions(main_guild.default_role, send_messages=False, reason="Archivage du projet"))
+						bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été archivé car son propriétaire a quitté le serveur.")))
+						send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été archivé car il a quitté le serveur", "Archivage d'un projet")
+					else:
+						overwrites = channel.overwrites
+						overwrites[main_guild.default_role] = nextcord.PermissionOverwrite(send_messages=False)
+						overwrites[member] = project_owner_perms
+						bot.loop.create_task(channel.edit(overwrites=overwrites, reason="Désarchivage du projet"))
+						bot.loop.create_task(channel.send(embed=normal_embed("Le projet à été désarchivé car son propriétaire a de nouveau rejoint le serveur.")))
+						send_log(f"Le projet `{project_data['name']}` de <@{member_id}> a été désarchivé car il a de nouveau rejoint le serveur", "Désarchivage d'un projet")
+					project_data["archived"] = archive
+					save = True
+
+		elif not archive:
+			for channel_id, project_data in member_projects.items():
+				if member_id in projects_data["members"]:
+					channel = get_textchannel(channel_id)
+					bot.loop.create_task(channel.set_permissions(member, overwrite=project_member_perms, reason="Ré-ajout d'un membre au projet"))
+				elif member_id in projects_data["mutes"]:
+					channel = get_textchannel(channel_id)
+					bot.loop.create_task(channel.set_permissions(member, overwrite=project_mute_perms, reason="Re-mute d'un membre"))
 
 	if save and (not do_not_save):
 		save_json()
@@ -858,7 +882,7 @@ async def on_member_join(member):
 			bot.loop.create_task(member.add_roles(988881883100217396))
 		else:
 			bot.loop.create_task(task_send_welcome(member))
-			task_archive_projects(member, False, True)
+			task_project_perms(member, False, True)
 			data["join_not_rules"][str(member.id)] = time.time() + 7200
 			save_json()
 
@@ -875,7 +899,7 @@ async def on_member_remove(member):
 	if member.guild == main_guild and (not member.bot):
 		bot.loop.create_task(task_send_quit(member))
 		bot.loop.create_task(task_remove_reactionroles_reactions(member))
-		task_archive_projects(member, True)
+		task_project_perms(member, True)
 
 
 @bot.event
