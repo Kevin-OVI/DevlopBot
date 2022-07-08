@@ -80,7 +80,7 @@ class RulesAcceptView(ui.View):
 			save_json()
 			bot.dispatch("rules_accept", interaction.user)
 		bot.loop.create_task(interaction.user.add_roles(member_role, reason="Le membre a accepté les règles"))
-		bot.loop.create_task(interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True))
+		await interaction.response.send_message(embed=validation_embed(f"Les règles ont été acceptées. Le rôle {member_role.mention} vous a été ajouté"), ephemeral=True)
 
 
 class ReviewView(ui.View):
