@@ -12,7 +12,7 @@ from utils import check_is_moderator, error_embed, get_id_str, get_member, get_t
 from variables import bot, bot_name, discord_variables, guild_ids
 from misc_classes import ConfirmationView
 
-project_ignore_channels = (988778342457147402, 988780418365014026)
+project_ignore_channels = (988778342457147402, )
 
 project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
 	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
