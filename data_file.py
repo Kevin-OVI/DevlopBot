@@ -8,6 +8,7 @@ from utils import normal_embed, validation_embed
 
 data = ConfigDict('data_devlopbot.json')
 projects_data: dict
+tickets_data: dict
 
 
 def save_json():
@@ -15,17 +16,21 @@ def save_json():
 
 
 def load_json():
-	global projects_data
+	global projects_data, tickets_data
 
 	data.reload()
 
-	for x in ("roleonreact", "join_not_rules", "projects", "config"):
+	for x in ("roleonreact", "join_not_rules", "projects", "config", "tickets"):
 		data.setdefault(x, {})
 
-	data["config"].setdefault("max-projects", 2)
-	save_json()
-
 	projects_data = data["projects"]
+	tickets_data = data["tickets"]
+
+	data["config"].setdefault("max-projects", 2)
+	tickets_data.setdefault("counter", 0)
+	tickets_data.setdefault("channels", {})
+
+	save_json()
 
 
 load_json()
