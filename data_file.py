@@ -50,7 +50,7 @@ class ConfigCog(commands.Cog):
 
 	@config_cmd.subcommand(name="reload", description="Permet de recharger le fichier de configuration")
 	@application_checks.is_owner()
-	async def config_save_cmd(self, interaction: nextcord.Interaction):
+	async def config_reload_cmd(self, interaction: nextcord.Interaction):
 		load_json()
 		empty_cache()
 		await interaction.response.send_message(embed=validation_embed("Le fichier de configuration a été rechargé"), ephemeral=True)
