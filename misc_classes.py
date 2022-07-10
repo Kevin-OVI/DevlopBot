@@ -31,7 +31,9 @@ class WelcomeMessagesCog(commands.Cog):
 
 	@commands.Cog.listener()
 	async def on_rules_accept(self, member):
-		welcome_msg = nextcord.Embed(color=embed_color, title=f"Bienvenue {member}", description=f"Bienvenue {member.mention}, et merci à toi !!")
+		welcome_msg = nextcord.Embed(color=embed_color, title=f"Bienvenue {member}", description=f"**Bienvenue {member.mention} sur {member.guild.name} !** \n\n\
+Vous pouvez créer votre projet dans le <#988778342457147402> ou consulter les projets déjà existants.\n\
+Vous pouvez également aller choisir vos rôles dans le <#988785247900565545>.")
 		welcome_msg.set_footer(text=f"Le serveur compte maintenant {len(member.guild.humans)} membres !")
 		welcome_msg.set_thumbnail(url=member.display_avatar.url)
 		await discord_variables.welcome_channel.send(embed=welcome_msg)
