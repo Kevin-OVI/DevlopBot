@@ -150,7 +150,7 @@ async def create_ticket(interaction):
 	start_embed = normal_embed(f"Bienvenue {interaction.user.mention}, un membre du staff vous répondra au plus vite.\nEn attendant, vous pouvez nous expliquer votre demande.")
 	start_embed.add_field(name="Auteur", value=interaction.user.mention, inline=False)
 	start_embed.add_field(name="Aide", value="""Pour refermer le ticket, cliquez sur le button ci-dessous ou exécutez la commande `/ticket close`.
-Pour ajouter ou retirer un membre de votre ticket, exécutez les commandes `/ticket add <membre>` ou `/ticket remove <membre>`.""", inline=False)
+Pour ajouter ou retirer un membre de votre ticket, exécutez les commandes `/ticket add-user <membre>` ou `/ticket remove-user <membre>`.""", inline=False)
 	await interaction.response.send_message(f"Le ticket à été créé: {channel.mention}.", ephemeral=True)
 	start_msg = await channel.send(embed=start_embed, view=CloseTicketView())
 	tickets_data["channels"][get_id_str(channel)] = {"members": [interaction.user.id], "system_messages": [start_msg.id], "open": True}
