@@ -134,7 +134,7 @@ class SupportControlsView(ui.View):
 
 		await interaction.response.send_message(embed=normal_embed(f"Le ticket a été réouvert par {interaction.user.mention}"), allowed_mentions=nextcord.AllowedMentions.none())
 
-	@ui.button(label="Supprimer le salon", emoji="❌", style=nextcord.ButtonStyle.red, custom_id=f"{view_name}:delete")
+	@ui.button(label="Supprimer le ticket", emoji="🗑️", style=nextcord.ButtonStyle.red, custom_id=f"{view_name}:delete")
 	async def delete_button(self, button, interaction):
 		del (tickets_data["channels"][get_id_str(interaction.channel)])
 		save_json()
