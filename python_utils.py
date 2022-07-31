@@ -1,25 +1,18 @@
-import asyncio
 import datetime
-import emoji
 import io
 import json
 import mimetypes
 import os
-import posixpath
 import random
 import string
 import time
-import urllib
-import urllib.parse
 from threading import Thread
-from urllib import request
-
-from PIL import Image
+from typing import List, Any, Callable, Union, Hashable
 
 headers = {'user-agent': 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11'}
 
 headers_json = headers.copy()
-headers_json['Content-Type'] =  'application/json'
+headers_json['Content-Type'] = 'application/json'
 
 digits = [x for x in string.digits]
 letters = [x for x in string.ascii_letters]
@@ -190,10 +183,6 @@ def get_timestamp():
 	return datetime.datetime.now()
 
 
-def get_emoji(s):
-	return emoji.emojize(s, use_aliases=True)
-
-
 jours = ('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche')
 mois = (
 	'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre',
@@ -234,12 +223,14 @@ def format_time(seconds):
 	return format_plural("seconde", seconds)
 
 def get_ascii(text):
-	return request.urlopen(request.Request(f"https://artii.herokuapp.com/make?text={urllib.parse.quote(text)}", headers=headers, method='GET')).read().decode()
+	from urllib import request, parse
+	return request.urlopen(request.Request(f"https://artii.herokuapp.com/make?text={parse.quote(text)}", headers=headers, method='GET')).read().decode()
 
 async def async_get_ascii(text):
 	return await AsyncExecReturn(get_ascii, (text,))()
 
 def bytesIO2image(bytesIO, formats):
+	from PIL import Image
 	return Image.open(bytesIO, formats=formats)
 
 def bytes2image(bytes, formats):
@@ -254,14 +245,9 @@ def image2bytesIO(image, format):
 def image2bytes(image, format):
 	return image2bytesIO(image, format).read()
 
-
 def multi_pixel(img, multi):
-	img_resized = Image.new('RGBA', (multi * img.width, multi * img.height))
-	for x in range(multi * img.width):
-		for y in range(multi * img.height):
-			img_resized.putpixel((x, y), img.getpixel((int(x / multi), int(y / multi))))
-
-	return img_resized
+	from PIL.Image import Resampling
+	return img.resize(img.width * multi, img.height * multi, Resampling.NEAREST)
 
 if not mimetypes.inited:
 	mimetypes.init()
@@ -274,6 +260,7 @@ extensions_map.update({
 })
 
 def guess_type(path):
+	import posixpath
 	base, ext = posixpath.splitext(path)
 	if ext in extensions_map:
 		return extensions_map[ext]
@@ -282,6 +269,60 @@ def guess_type(path):
 		return extensions_map[ext]
 	else:
 		return extensions_map['']
+
+def set_recursive_default(dic: dict, key: Hashable, default: Any = None) -> None:
+	dic.setdefault(key, default)
+	if isinstance(default, dict):
+		for subkey, subval in default.items():
+			set_recursive_default(dic[key], subkey, subval)
+
+def find_by(l: List[dict], key: Hashable, search_value: Any) -> dict:
+	for obj in l:
+		if obj[key] == search_value:
+			return obj
+
+def multidel(obj: Union[list, dict], *keys) -> None:
+	if (isinstance(obj, list)):
+		keys = list(keys)
+		keys.sort()
+		compensation = 0
+		for key in keys:
+			absolute_key = key-compensation
+			if len(obj) <= absolute_key:
+				continue
+			del(obj[absolute_key])
+			if isinstance(obj, list):
+				compensation += 1
+	elif isinstance(obj, dict):
+		for key in keys:
+			if key not in obj.keys():
+				continue
+			del(obj[key])
+	else:
+		raise TypeError("obj type not supported")
+
+_mail_re = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+def is_email(s: str) -> bool:
+	import re
+	return re.fullmatch(_mail_re, s)
+
+
+def compare_email(email1, email2):
+	if not is_email(email1):
+		raise ValueError("email1 is not valid mail")
+	if not is_email(email2):
+		raise ValueError("email2 is not valid mail")
+
+	name1, domain1 = email1.split("@")
+	name2, domain2 = email2.split("@")
+
+	return name1 == name2 and domain1.upper() == domain2.upper()
+
+
+def del_if_none(obj, key):
+	if key in obj.keys() and obj[key] == None:
+		del(obj[key])
+
 
 
 def async_function(func):
@@ -298,12 +339,12 @@ def dasha2kwa(args):
 			kwargs[split[0][1:]] = ":".join(split[1:])
 	return kwargs
 
-def find(iterable, condition):
+def find_all(iterable: List[Any], condition: Callable) -> Any:
+	return [x for x in iterable if condition(x)]
+
+def find(iterable: List[Any], condition: Callable) -> Any:
 	found = find_all(iterable, condition)
 	return None if not found else found[0]
-
-def find_all(iterable, condition):
-	return [x for x in iterable if condition(x)]
 
 """def translate(string, to_lang, from_lang="auto", api="http://localhost:40000/translate"):
 	data = json.dumps({"q": string, "source": from_lang, "target": to_lang, "format": "text"}).encode('utf-8')
@@ -324,6 +365,7 @@ async def aexec(code, globals=None, locals=None, /):
 	await env_locals['__ex'](**variables)
 
 def translate(string, to_lang, from_lang="fra"):
+	from urllib import request
 	data = json.dumps({"format":"text","from":from_lang,"to":to_lang,"input":string,"options":{"sentenceSplitter":False,"origin":"translation.web","contextResults":False,"languageDetection":True}}).encode('utf8')
 	return json.loads(request.urlopen(request.Request("https://api.reverso.net/translate/v1/translation", method="POST", data=data, headers={"content-type": "application/json", "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 OPR/82.0.4227.50"})).read())["translation"][0]
 
@@ -348,6 +390,7 @@ class AsyncExecReturn(Thread):
 			self.error = e
 
 	async def start_wait(self):
+		import asyncio
 		self.start()
 		while self.is_alive():
 			await asyncio.sleep(0.1)

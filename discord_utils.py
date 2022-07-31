@@ -2,6 +2,7 @@ import sys
 from functools import wraps
 
 import nextcord
+import emoji
 from mcstatus import JavaServer
 from nextcord.ext import commands
 from urllib.error import HTTPError
@@ -131,6 +132,9 @@ def has_permissions_run(**perms):
 def has_guild_permissions_run(**perms):
     return check_run(lambda ctx: has_guild_permissions(ctx.author, **perms))
 
+def get_emoji(s):
+    return emoji.emojize(s, use_aliases=True)
+
 
 async def get_server_status_embeds(servers):
     timestamp = get_timestamp()
@@ -255,11 +259,12 @@ async def hidden_pin(message: nextcord.Message, *,  reason=None):
 class RawRequester:
     API_BASE = 'https://discord.com/api/v9'
     IMAGE_BASE = 'https://cdn.discordapp.com'
-    base_bot_headers = headers_json.copy()
-    base_bot_headers['User-Agent'] = f'DiscordBot (raw) Python/{sys.version_info[0]}.{sys.version_info[1]} urlib.request/{request.__version__}'
     
     def __init__(self, token):
-        self.bot_headers = self.__class__.base_bot_headers.copy()
+        from urllib import request
+        self.request = request
+        self.bot_headers = headers_json.copy()
+        self.bot_headers['User-Agent'] = f'DiscordBot (raw) Python/{sys.version_info[0]}.{sys.version_info[1]} urlib.request/{request.__version__}'
         self.bot_headers['Authorization'] = f'Bot {token}'
         self._mutex = Lock()
         self._ratelimit = None
@@ -273,7 +278,7 @@ class RawRequester:
         try:
             while 1:
                 try:
-                    req = request.urlopen(request.Request(*args, **kwargs))
+                    req = self.request.urlopen(self.request.Request(*args, **kwargs))
                     r1 = req.headers["X-RateLimit-Remaining"]
                     if r1:
                         if int(r1) <= 0:
