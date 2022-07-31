@@ -479,7 +479,7 @@ async def edit_info_message(user, channel):
 
 
 async def create_project_start(interaction: nextcord.Interaction):
-	user_data = data["projects"].get(str(interaction.user.id))
+	user_data = data["projects"].get(str(interaction.user.id), {})
 	max_projects = data["config"]["max-projects"]
 	if len(user_data) >= max_projects:
 		await interaction.response.send_message(embed=error_embed(f"Vous ne pouvez avoir que {max_projects} projects au maximum."), ephemeral=True)
