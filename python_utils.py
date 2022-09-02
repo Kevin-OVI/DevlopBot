@@ -196,7 +196,7 @@ def ctime_fr(t):
 	return f'{jours[t[6]]} {t[2]} {mois[t[1] - 1]} {t[0]} {str(t[3]).zfill(2)}:{str(t[4]).zfill(2)}:{str(t[5]).zfill(2)}'
 
 def format_plural(word, num):
-	if num != 0 and num != 1:
+	if num >= 2:
 		return f"{num} {word}s"
 	return f"{num} {word}"
 

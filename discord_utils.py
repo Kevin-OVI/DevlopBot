@@ -2,7 +2,7 @@ import sys
 from functools import wraps
 
 import nextcord
-import emoji
+import asyncio
 from mcstatus import JavaServer
 from nextcord.ext import commands
 from urllib.error import HTTPError
@@ -133,6 +133,7 @@ def has_guild_permissions_run(**perms):
     return check_run(lambda ctx: has_guild_permissions(ctx.author, **perms))
 
 def get_emoji(s):
+    import emoji
     return emoji.emojize(s, use_aliases=True)
 
 
@@ -173,6 +174,7 @@ def get_custom_id(bot_name: str, view: str, button_name: str):
 
 
 def get_emoji_url(url):
+    from urllib import request
     url = url.split("?")[0].split("#")[0]
     filename = url.split("/")[-1]
     name = ".".join(filename.split(".")[:-1])
@@ -254,6 +256,40 @@ def get_field_id(embed, name):
 async def hidden_pin(message: nextcord.Message, *,  reason=None):
     await message.pin(reason=reason)
     await message.channel.purge(check=lambda msg: msg.type == nextcord.MessageType.pins_add and msg.reference.message_id == message.id, bulk=False)
+
+
+def command_ratelimit(ratelimit_time, sameas=None):
+    def deco(func):
+        ratelimit_func = func if sameas is None else sameas
+        ratelimit_func.ratelimits = {}
+
+        @wraps(func)
+        async def overwrite(ctx, *args, **kwargs):
+            if isinstance(ctx, nextcord.Interaction):
+                ty = 0
+                user = ctx.user
+            elif isinstance(ctx, commands.Context):
+                ty = 1
+                user = ctx.author
+            else:
+                raise TypeError("ctx is not a supported type")
+
+            ratelimit = ratelimit_func.ratelimits.get(user.id, 0)
+            t = time.time()
+
+            if ratelimit > t:
+                msg = f"Merci de patienter {format_time(int(ratelimit - t))} avant de réexecuter la commande."
+                if ty == 0:
+                    await ctx.response.send_message(msg, ephemeral=True)
+                elif ty == 1:
+                    await ctx.message.reply(msg)
+            else:
+                ratelimit_func.ratelimits[user.id] = t + ratelimit_time
+                return await func(ctx, *args, **kwargs)
+
+        
+        return overwrite
+    return deco
 
 
 class RawRequester:
