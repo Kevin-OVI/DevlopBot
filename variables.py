@@ -10,7 +10,7 @@ bot_name = "devlopbot"
 embed_color = 0xAD1457
 
 bot = commands.Bot(intents=nextcord.Intents(guilds=True, members=True, reactions=True, messages=True), status=nextcord.Status.idle,
-	activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
+				   activity=nextcord.Activity(type=nextcord.ActivityType.playing, name="démarrer..."))
 
 
 class DiscordVariables(commands.Cog):

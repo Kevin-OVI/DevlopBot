@@ -7,6 +7,7 @@ import nextcord
 from bot_role_adder import BotRoleAdderCog
 from data_file import ConfigCog
 from discord_utils import default_errors
+from roles import RolesCog
 from rules import RulesCog
 from roleonreact import RoleOnReactCog
 from project import ProjectCog
@@ -50,4 +51,5 @@ bot.add_cog(WelcomeMessagesCog())
 bot.add_cog(SendSpecialCog())
 bot.add_cog(TicketsCog())
 bot.add_cog(BotRoleAdderCog())
+bot.add_cog(RolesCog())
 bot.run(os.getenv('TOKEN_DEVLOPBOT'))
