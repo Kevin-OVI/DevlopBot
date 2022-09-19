@@ -103,7 +103,7 @@ def message2dict(message):
 def still_on_guild(member_id, guild):
     return guild.get_member(member_id) is not None
 
-def embed_message(description, color, title=nextcord.Embed.Empty):
+def embed_message(description, color, title=None):
     return nextcord.Embed(description=description, color=color, title=title)
 
 def check_run(predicate):
@@ -333,15 +333,13 @@ class RawRequester:
             self._mutex.release()
 
     async def send_base_request(self, method: str, url: str, data=None, headers=None):
-        return await self._ratelimit_request(method=method, url=url, data=data, headers=headers).read()
-
+        return (await self._ratelimit_request(method=method, url=url, data=data, headers=headers)).read()
 
     async def send_image_request(self, path):
         if not path.startswith("/"):
             path = "/" + path
         url = self.IMAGE_BASE + path
         return await self.send_base_request('GET', url, None, headers)
-
 
     async def send_bot_request(self, method: str, path: str, data=None, headers=None):
         if not path.startswith("/"):
