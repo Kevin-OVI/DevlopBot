@@ -8,19 +8,19 @@ from discord_utils import embed_message, has_guild_permissions
 from variables import bot, discord_variables, embed_color
 
 
-def validation_embed(message, title=nextcord.Embed.Empty):
+def validation_embed(message, title=None):
 	return embed_message("<:oui:988807617654702140> " + message, embed_color, title)
 
 
-def error_embed(message, title=nextcord.Embed.Empty):
+def error_embed(message, title=None):
 	return embed_message(":x: " + message, embed_color, title)
 
 
-def question_embed(message, title=nextcord.Embed.Empty):
+def question_embed(message, title=None):
 	return embed_message("❓ " + message, embed_color, title)
 
 
-def normal_embed(message, title=nextcord.Embed.Empty):
+def normal_embed(message, title=None):
 	return embed_message(message, embed_color, title)
 
 
