@@ -255,6 +255,39 @@ class ProjectCog(commands.Cog):
 		else:
 			await interaction.edit_original_message(embed=normal_embed("Le transfert de propriété a été annulé"), view=None)
 
+	# Todo: Fonction de sécurité pour empêcher l'envoi de n'importe quel message dans le salon
+	@project_cmd.subcommand(name="github-webhook")
+	async def project_githubwebhook_cmd(self):
+		pass
+
+	@project_githubwebhook_cmd.subcommand(name="get", description="Permet d'obtenir un webhook github")
+	@check_project_owner
+	async def project_githubwebhook_get_cmd(self, interaction: nextcord.Interaction):
+		selected_webhook: Optional[nextcord.Webhook] = None
+		webhook: nextcord.Webhook
+		for webhook in await interaction.channel.webhooks():
+			if webhook.name == "GITHUB" and webhook.token:
+				selected_webhook = webhook
+				break
+		if selected_webhook is None:
+			selected_webhook = await interaction.channel.create_webhook(name="GITHUB", reason="Création d'un webhook github")
+
+		await interaction.response.send_message(embed=validation_embed(f"Voici votre webhook GitHub :\n{selected_webhook.url}/github", "Votre webhook GitHub").set_footer(
+			text="Ne partagez pas ce lien, il permet d'envoyer des messages dans votre salon."), ephemeral=True)
+
+	@project_githubwebhook_cmd.subcommand(name="remove", description="Permet de supprimer le webhook github du salon")
+	@check_project_owner
+	async def project_githubwebhook_remove_cmd(self, interaction: nextcord.Interaction):
+		webhook: nextcord.Webhook
+		for webhook in await interaction.channel.webhooks():
+			if webhook.name == "GITHUB" and webhook.token:
+				await webhook.delete(reason="Suppression du webhook github")
+				await interaction.response.send_message(embed=validation_embed("Le webhook github du salon a bien été supprimé.", "Suppression du webhook github"))
+				return
+
+		await interaction.response.send_message(embed=error_embed("Il n'existe pas de webhook github dans ce salon"), ephemeral=True)
+
+
 	@commands.Cog.listener()
 	async def on_first_ready(self):
 		bot.add_modal(ProjectTopicModal())
