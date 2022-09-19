@@ -98,8 +98,12 @@ class RulesCog(commands.Cog):
 				mp_embed.add_field(name='Raison',
 					value="Vous n'avez pas accepté les règles après 2 heures.\nVous pouvez revenir avec [ce lien](https://discord.com/invite/KTHh2KDejy) et retenter votre chance.")
 				mp_embed.timestamp = get_timestamp()
-				await send_dm(member, embed=mp_embed)
-				await discord_variables.main_guild.kick(member, reason="Règles non acceptées après 2 heures")
+				try:
+					await send_dm(member, embed=mp_embed)
+					dm_sent = True
+				except nextcord.Forbidden:
+					dm_sent = False
+				await discord_variables.main_guild.kick(member, reason="Règles non acceptées après 2 heures" + ("" if dm_sent else " | ⚠️le mp n'a pas pu être envoyé"))
 				del (section[member_id])
 				save = True
 		if save:
