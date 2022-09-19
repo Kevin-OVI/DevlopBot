@@ -51,7 +51,7 @@ class RulesCog(commands.Cog):
 		elif type(jload) == dict:
 			embeds = [nextcord.Embed.from_dict(jload)]
 		else:
-			await interaction.reply("Le json doit être une liste d'objets embeds ou un objet embed")
+			await interaction.response.send_message("Le json doit être une liste d'objets embeds ou un objet embed", ephemeral=True)
 			return
 
 		await discord_variables.rules_msg.edit(embeds=embeds, view=RulesAcceptView())
