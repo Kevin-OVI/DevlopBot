@@ -12,7 +12,7 @@ from utils import check_is_moderator, error_embed, get_id_str, get_member, get_t
 from variables import bot, bot_name, discord_variables, guild_ids
 from misc_classes import ConfirmationView
 
-project_ignore_channels = (988778342457147402, )
+project_ignore_channels = (988778342457147402,)
 
 project_member_perms = nextcord.PermissionOverwrite(create_private_threads=True, create_public_threads=True, embed_links=True,
 	attach_files=True, manage_threads=True, manage_messages=True, use_slash_commands=True)
@@ -88,7 +88,8 @@ class ProjectCog(commands.Cog):
 		if is_user_on_guild(member):
 			bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
 			bot.loop.create_task(try_send_dm(member,
-				embed=normal_embed(f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+				embed=normal_embed(
+					f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 		send_log(f"{interaction.user.mention} a ajouté {member.mention} aux membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 			"Ajout d'un membre à un projet")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."), ephemeral=True)
@@ -114,7 +115,8 @@ class ProjectCog(commands.Cog):
 		if is_user_on_guild(member):
 			bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Suppression d'un membre du projet"))
 			bot.loop.create_task(try_send_dm(member,
-				embed=normal_embed(f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+				embed=normal_embed(
+					f"Vous avez été retiré des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 		send_log(f"{interaction.user.mention} a retiré {member.mention} des membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 			"Retrait d'un membre d'un projet")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été retiré des membres du projet."), ephemeral=True)
@@ -160,7 +162,8 @@ class ProjectCog(commands.Cog):
 		if is_user_on_guild(member):
 			bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_mute_perms, reason="Mute d'un membre"))
 			bot.loop.create_task(try_send_dm(member,
-				embed=normal_embed(f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+				embed=normal_embed(
+					f"Vous avez été réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 		send_log(f"{interaction.user.mention} a réduit {member.mention} au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 			"Mute d'un membre")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été réduit au silence dans ce salon."), ephemeral=True)
@@ -180,7 +183,8 @@ class ProjectCog(commands.Cog):
 		if is_user_on_guild(member):
 			bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=None, reason="Unmute d'un membre"))
 			bot.loop.create_task(try_send_dm(member,
-				embed=normal_embed(f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+				embed=normal_embed(
+					f"Vous n'êtes plus réduit au silence dans le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 		send_log(f"{interaction.user.mention} a supprimé la réduction au silence de {member.mention} dans le projet [{project_data['name']}]({interaction.channel.jump_url}) \
 	de <@{owner_id}>", "Unmute d'un membre")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
@@ -305,7 +309,8 @@ class ProjectTopicModal(ui.Modal):
 		name = self.name_field.value
 		description = self.description_field.value
 		channel = await discord_variables.projects_categ.create_text_channel(name=name, overwrites={interaction.user: project_owner_perms},
-			topic=f"Projet de {interaction.user.mention}\n\n{description[:988] + '...' if len(description) > 990 else description}", reason="Création d'un projet")
+			topic=f"Projet de {interaction.user.mention}\n\n{description[:988] + '...' if len(description) > 990 else description}",
+			reason="Création d'un projet")
 		channel_id_str = str(channel.id)
 		projects_data.setdefault(user_id_str, {})
 		projects_data[user_id_str][channel_id_str] = {"name": name, "description": description, "members": [], "mutes": [], "held_for_review": False, "archived": False}
@@ -335,7 +340,8 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			description = self.description_field.value
 
 			bot.loop.create_task(interaction.channel.edit(name=name,
-				topic=f"Projet de <@{owner_id}>\n\n{description[:988] + '...' if len(description) > 990 else description}", reason="Modification d'un projet"))
+				topic=f"Projet de <@{owner_id}>\n\n{description[:988] + '...' if len(description) > 990 else description}",
+				reason="Modification d'un projet"))
 
 			old_name = project_data["name"]
 			old_desctiption = project_data["description"]
