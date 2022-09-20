@@ -23,6 +23,8 @@ def load_json():
 	for x in ("roleonreact", "join_not_rules", "projects", "config", "tickets"):
 		data.setdefault(x, {})
 
+	data.setdefault("bump_reminder_disabled", [])
+
 	projects_data = data["projects"]
 	tickets_data = data["tickets"]
 

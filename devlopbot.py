@@ -5,12 +5,14 @@ import traceback
 import nextcord
 
 from bot_role_adder import BotRoleAdderCog
+from bump_reminder import BumpReminderCog
 from data_file import ConfigCog
 from discord_utils import default_errors
 from roles import RolesCog
 from rules import RulesCog
 from roleonreact import RoleOnReactCog
 from project import ProjectCog
+from scheduler import SchedulerCog
 from utils import normal_embed
 from welcome_messages import WelcomeMessagesCog
 from sendspecial import SendSpecialCog
@@ -43,6 +45,7 @@ async def on_ready():
 
 bot.add_cog(discord_variables)
 bot.add_cog(TasksCog())
+bot.add_cog(SchedulerCog())
 bot.add_cog(ProjectCog())
 bot.add_cog(RoleOnReactCog())
 bot.add_cog(RulesCog())
@@ -52,4 +55,6 @@ bot.add_cog(SendSpecialCog())
 bot.add_cog(TicketsCog())
 bot.add_cog(BotRoleAdderCog())
 bot.add_cog(RolesCog())
+bot.add_cog(BumpReminderCog())
+
 bot.run(os.getenv('TOKEN_DEVLOPBOT'))
