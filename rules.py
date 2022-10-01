@@ -104,7 +104,5 @@ class RulesCog(commands.Cog):
 				except nextcord.Forbidden:
 					dm_sent = False
 				await discord_variables.main_guild.kick(member, reason="Règles non acceptées après 2 heures" + ("" if dm_sent else " | ⚠️le mp n'a pas pu être envoyé"))
-				del (section[member_id])
-				save = True
 		if save:
 			save_json()
