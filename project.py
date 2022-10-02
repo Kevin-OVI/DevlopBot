@@ -8,7 +8,9 @@ from nextcord.ext import commands
 from cache_data import cache_return, empty_function_cache
 from data_file import data, projects_data, save_json
 from discord_utils import has_guild_permissions, hidden_pin, try_send_dm
-from utils import check_is_moderator, error_embed, get_id_str, get_member, get_textchannel, is_moderator, is_user_on_guild, normal_embed, question_embed, send_log, validation_embed
+from python_utils import format_plural
+from utils import check_is_moderator, clean_enumeration, error_embed, get_id_str, get_member, get_textchannel, is_moderator, is_user_on_guild, normal_embed, question_embed, \
+	send_log, validation_embed
 from variables import bot, bot_name, discord_variables, guild_ids
 from misc_classes import ConfirmationView
 
@@ -254,6 +256,38 @@ class ProjectCog(commands.Cog):
 			await interaction.edit_original_message(embed=validation_embed("Le transfert de propriété a été effectué"), view=None)
 		else:
 			await interaction.edit_original_message(embed=normal_embed("Le transfert de propriété a été annulé"), view=None)
+
+	@nextcord.user_command("Voir Projets", guild_ids=guild_ids)
+	async def see_projects_cmd(self, interaction: nextcord.Interaction, member: nextcord.Member):
+		member_id = get_id_str(member)
+		member_projects = projects_data.get(member_id, {})
+		member_mention = member.mention
+		content = [None, None]
+
+		if member_projects:
+			projects_enumeation = clean_enumeration([f"[{project_data['name']}]({get_textchannel(channel_id).jump_url})" for channel_id, project_data in member_projects.items()])
+			content[0] = f"{member_mention} possède {format_plural('projet', len(member_projects))} : {projects_enumeation}"
+		else:
+			content[0] = f"{member_mention} ne possède pas de projets."
+
+		member_other_projects = []
+		for owner_id, projects in projects_data.items():
+			if owner_id != member_id:
+				for channel_id, project_data in projects.items():
+					if member_id in project_data["members"]:
+						member_other_projects.append((owner_id, channel_id, project_data))
+
+		if member_other_projects:
+			projects_enumeation = clean_enumeration(
+				[f"[{project_data['name']}]({get_textchannel(channel_id).jump_url}) de <@{owner_id}>" for owner_id, channel_id, project_data in member_other_projects])
+			if len(member_other_projects) == 1:
+				content[1] = f"{member_mention} est aussi membre d'un autre projet : {projects_enumeation}"
+			else:
+				content[1] = f"{member_mention} est aussi membre des autres projets suivants : {projects_enumeation}"
+		else:
+			content[1] = f"{member_mention} n'est membre d'aucun autre projet."
+
+		await interaction.response.send_message(embed=normal_embed("\n".join(content)), ephemeral=True)
 
 	@commands.Cog.listener()
 	async def on_first_ready(self):
