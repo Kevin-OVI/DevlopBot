@@ -91,7 +91,7 @@ class ProjectCog(commands.Cog):
 			bot.loop.create_task(interaction.channel.set_permissions(member, overwrite=project_member_perms, reason="Ajout d'un membre au projet"))
 			bot.loop.create_task(try_send_dm(member,
 				embed=normal_embed(
-					f"Vous avez été ajouté aux membre du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
+					f"Vous avez été ajouté aux membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>")))
 		send_log(f"{interaction.user.mention} a ajouté {member.mention} aux membres du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}>",
 			"Ajout d'un membre à un projet")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} a été ajouté aux membres du projet."), ephemeral=True)
