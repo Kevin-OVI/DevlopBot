@@ -1,4 +1,5 @@
 import datetime
+import functools
 import io
 import json
 import mimetypes
@@ -6,6 +7,7 @@ import os
 import random
 import string
 import time
+import pytz
 from threading import Thread
 from typing import List, Any, Callable, Union, Hashable
 
@@ -180,7 +182,8 @@ def one_chance(out):
 
 
 def get_timestamp():
-	return datetime.datetime.now()
+	tz = pytz.timezone('Europe/Paris')
+	return datetime.datetime.now(tz)
 
 
 jours = ('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche')
@@ -326,6 +329,7 @@ def del_if_none(obj, key):
 
 
 def async_function(func):
+	@functools.wraps(func)
 	async def overwrite(*args, **kwargs):
 		return await AsyncExecReturn(func, args, kwargs)()
 
