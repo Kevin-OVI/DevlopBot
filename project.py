@@ -235,11 +235,18 @@ class ProjectCog(commands.Cog):
 		await view.wait()
 		if view.value:
 			channel_id = get_id_str(interaction.channel)
+			overwrites = interaction.channel.overwrites
+			overwrites[member] = project_owner_perms
 			if stay_member:
 				project_data["members"].append(old_owner_id)
 				empty_function_cache(is_project_member)
+				overwrites[interaction.user] = project_member_perms
 			if new_owner_id in project_data["members"]:
 				project_data["members"].remove(new_owner_id)
+				try:
+					del (overwrites[interaction.user])
+				except KeyError:
+					pass
 			projects_data.setdefault(new_owner_id, {})
 			projects_data[new_owner_id][channel_id] = project_data
 			del (projects_data[old_owner_id][channel_id])
@@ -248,6 +255,7 @@ class ProjectCog(commands.Cog):
 			save_json()
 			empty_function_cache(is_project_owner)
 			empty_function_cache(find_project)
+			bot.loop.create_task(interaction.channel.edit(overwrites=overwrites, reason="Transfert de propriété"))
 			bot.loop.create_task(edit_info_message(new_owner_id, interaction.channel))
 			bot.loop.create_task(try_send_dm(member, embed=normal_embed(f"Vous avez reçu la propriété du projet [{project_data['name']}]({interaction.channel.jump_url})")))
 			send_log(
