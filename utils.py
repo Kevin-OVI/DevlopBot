@@ -69,13 +69,3 @@ def check_is_moderator():
 
 def is_user_on_guild(user):
 	return get_member(user) is not None
-
-
-def clean_enumeration(iterable, ifnone="", last_seperator=" et ", other_separator=", "):
-	l = len(iterable)
-	if l == 0:
-		return ifnone
-	elif l == 1:
-		return iterable[0]
-	else:
-		return other_separator.join(iterable[:-1]) + last_seperator + iterable[-1]
