@@ -42,5 +42,5 @@ class BumpReminderCog(commands.Cog):
 
 	async def remind_now(self, message: nextcord.Message, interaction_user: nextcord.User):
 		del (self.scheduled_reminders[interaction_user.id])
-		await message.reply(f"{interaction_user.mention} C'est l'heure du bump !",
+		await message.reply(f"{interaction_user.mention} C'est l'heure du </bump:947088344167366698> !",
 			embed=normal_embed("Rien ne vous oblige de le faire bien sur, vous pouvez désactiver ce rappel avec la commande /bump_reminder"))
