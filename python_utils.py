@@ -8,6 +8,7 @@ import random
 import string
 import time
 import pytz
+import sys
 from threading import Thread
 from typing import List, Any, Callable, Union, Hashable
 
@@ -350,16 +351,27 @@ def find(iterable: List[Any], condition: Callable) -> Any:
 	found = find_all(iterable, condition)
 	return None if not found else found[0]
 
+def clean_enumeration(iterable, ifnone="", last_seperator=" et ", other_separator=", "):
+	l = len(iterable)
+	if l == 0:
+		return ifnone
+	elif l == 1:
+		return iterable[0]
+	else:
+		return other_separator.join(iterable[:-1]) + last_seperator + iterable[-1]
+
 """def translate(string, to_lang, from_lang="auto", api="http://localhost:40000/translate"):
 	data = json.dumps({"q": string, "source": from_lang, "target": to_lang, "format": "text"}).encode('utf-8')
 	return json.loads(request.urlopen(request.Request(api, data=data, method="POST", headers={'content-type': 'application/json', 'origin': 'https://libretranslate.com', 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 OPR/82.0.4227.50'})).decode())['translatedText']
 """
 
 async def aexec(code, globals=None, locals=None, /):
+	import inspect
+	cframe = inspect.currentframe()
 	if globals is None:
-		globals = {}
+		globals = cframe.f_back.f_globals
 	if locals is None:
-		locals = {}
+		locals = cframe.f_back.f_locals
 
 	variables = {}
 	variables.update(globals)
@@ -375,6 +387,27 @@ def translate(string, to_lang, from_lang="fra"):
 
 
 async_translate = async_function(translate)
+
+def deprecated(message=None):
+	def deco(func):
+		@functools.wraps(func)
+		def overwrite(*args, **kwargs):
+			print(f"Warning: Function {func.__name__} is deprecated. {'' if message is None else message}", file=sys.stderr)
+			return func(*args, **kwargs)
+		return overwrite
+	return deco
+
+def lzfill(s, width, /):
+	add_zeros = width - len(s)
+	if add_zeros > 0:
+		s += "0" * add_zeros
+	return s
+
+def simplify_number(n: float):
+	i = int(n)
+	if n == i:
+		return i
+	return n
 
 class AsyncExecReturn(Thread):
 	def __init__(self, target, args=(), kwargs=None):
