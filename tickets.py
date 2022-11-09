@@ -13,7 +13,35 @@ from variables import bot, bot_name, discord_variables, guild_ids
 
 ticket_ignore_channels = (995064624712003584,)
 ticket_permissions = nextcord.PermissionOverwrite(add_reactions=True, read_messages=True, view_channel=True, send_messages=True,
-	embed_links=True, attach_files=True, read_message_history=True, external_emojis=True, external_stickers=True, use_slash_commands=True)
+	embed_links=True, attach_files=True, read_message_history=True, external_emojis=True, external_stickers=True,
+	use_slash_commands=True)
+
+tickets_types = {
+	"report": {
+		"name": "Ticket Signalement",
+		"emoji": "🚨",
+		"description": "Pour signaler un utilisateur ou un projet",
+		"channel_format": "report-{number}-{username}"
+	},
+	"recruit": {
+		"name": "Ticket Recrutement",
+		"emoji": "🛠",
+		"description": "Pour demander à rejoindre le staff du serveur",
+		"channel_format": "recruit-{number}-{username}"
+	},
+	"help": {
+		"name": "Ticket Aide",
+		"emoji": "❔",
+		"description": "Si vous avez une question consernant le serveur ou les bots",
+		"channel_format": "help-{number}-{username}"
+	},
+	"other": {
+		"name": "Ticket Autre",
+		"emoji": "💠",
+		"description": "Pour un sujet ne correspondant pas à ces catégories",
+		"channel_format": "other-{number}-{username}"
+	}
+}
 
 
 @cache_return()
@@ -38,8 +66,9 @@ class TicketsCog(commands.Cog):
 		pass
 
 	@ticket_cmd.subcommand(name='create', description="Permet de créer un ticket")
-	async def ticket_create_cmd(self, interaction):
-		await create_ticket(interaction)
+	async def ticket_create_cmd(self, interaction, type_: str = nextcord.SlashOption(name="type", description="Le type de ticket à ouvrir", required=True,
+		choices={type_data["name"]: id_ for id_, type_data in tickets_types.items()})):
+		await create_ticket(interaction, type_)
 
 	@ticket_cmd.subcommand(name="close", description="Permet de fermer un ticket")
 	@check_is_ticket
@@ -92,9 +121,14 @@ class CreateTicketView(ui.View):
 	def __init__(self):
 		super().__init__(timeout=None)
 
-	@ui.button(label="Créer un ticket", emoji="🎫", style=nextcord.ButtonStyle.primary, custom_id=f"{view_name}:create")
-	async def create_button(self, button, interaction):
-		await create_ticket(interaction)
+	@ui.select(placeholder="Sélectionnez le type adéquat pour votre sujet", custom_id=f"{view_name}:create_selector",
+		options=[nextcord.SelectOption(label=type_data["name"], value=id_, description=type_data["description"], emoji=type_data.get("emoji"))
+			for id_, type_data in tickets_types.items()])
+	async def create_selector(self, select: ui.Select, interaction: nextcord.Interaction):
+		if len(select.values) != 1:
+			await interaction.send(embed=error_embed("Vous devez sélectionner exactement une option, comment avez vous fait autrement !?", "Erreur Impossible"))
+			return
+		await create_ticket(interaction, select.values[0])
 
 
 class CloseTicketView(ui.View):
@@ -141,16 +175,18 @@ class SupportControlsView(ui.View):
 		await interaction.channel.delete(reason="Suppression du ticket")
 
 
-async def create_ticket(interaction):
+async def create_ticket(interaction, ticket_type_id):
+	ticket_type = tickets_types[ticket_type_id]
 	tickets_data["counter"] += 1
 	count_str = str(tickets_data["counter"]).zfill(4)
-	channel = await discord_variables.tickets_categ.create_text_channel(f"ticket-{count_str}", overwrites={
+	channel = await discord_variables.tickets_categ.create_text_channel(ticket_type["channel_format"].format(number=count_str, username=interaction.user.display_name), overwrites={
 		discord_variables.main_guild.default_role: nextcord.PermissionOverwrite(view_channel=False),
 		discord_variables.support_role: nextcord.PermissionOverwrite(view_channel=True), interaction.user: ticket_permissions}, reason="Création d'un ticket")
 	start_embed = normal_embed(f"Bienvenue {interaction.user.mention}, un membre du staff vous répondra au plus vite.\nEn attendant, vous pouvez nous expliquer votre demande.")
 	start_embed.add_field(name="Auteur", value=interaction.user.mention, inline=False)
 	start_embed.add_field(name="Aide", value="""Pour refermer le ticket, cliquez sur le button ci-dessous ou exécutez la commande `/ticket close`.
 Pour ajouter ou retirer un membre de votre ticket, exécutez les commandes `/ticket add-user <membre>` ou `/ticket remove-user <membre>`.""", inline=False)
+	start_embed.add_field(name="Type de ticket", value=ticket_type["name"], inline=False)
 	await interaction.response.send_message(f"Le ticket à été créé: {channel.mention}.", ephemeral=True)
 	start_msg = await channel.send(embed=start_embed, view=CloseTicketView())
 	tickets_data["channels"][get_id_str(channel)] = {"members": [interaction.user.id], "system_messages": [start_msg.id], "open": True}
