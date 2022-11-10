@@ -55,6 +55,9 @@ class RulesCog(commands.Cog):
 		jload = json.loads(await rules_file.read())
 		if type(jload) == list:
 			embeds = [nextcord.Embed.from_dict(x) for x in jload]
+			if len(embeds) < 1:
+				await interaction.response.send_message(embed=error_embed("Le message doit contenir au moins un embed."), ephemeral=True)
+				return
 		elif type(jload) == dict:
 			embeds = [nextcord.Embed.from_dict(jload)]
 		else:
