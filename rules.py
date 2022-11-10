@@ -9,7 +9,7 @@ from nextcord.ext import application_checks, commands, tasks
 from data_file import data, save_json
 from discord_utils import send_dm
 from python_utils import get_timestamp
-from utils import get_id_str, validation_embed
+from utils import error_embed, get_id_str, normal_embed, validation_embed
 from variables import bot, bot_name, discord_variables, embed_color, guild_ids
 
 
@@ -46,7 +46,7 @@ class RulesCog(commands.Cog):
 		json.dump([x.to_dict() for x in embeds], f, ensure_ascii=False, indent=2)
 		f.seek(0)
 		f = io.BytesIO(f.read().encode())
-		await interaction.response.send_message("Voici le json de l'embed des règles", file=nextcord.File(f, filename='rules message.json'), ephemeral=True)
+		await interaction.response.send_message(embed=normal_embed("Voici le json de l'embed des règles"), file=nextcord.File(f, filename='rules message.json'), ephemeral=True)
 
 	@rules_cmd.subcommand(name="set", description="Permet de définir le json de l'embed du message des règles")
 	@application_checks.has_permissions(administrator=True)
@@ -58,7 +58,7 @@ class RulesCog(commands.Cog):
 		elif type(jload) == dict:
 			embeds = [nextcord.Embed.from_dict(jload)]
 		else:
-			await interaction.response.send_message("Le json doit être une liste d'objets embeds ou un objet embed", ephemeral=True)
+			await interaction.response.send_message(embed=error_embed("Le json doit être une liste d'objets embeds ou un objet embed"), ephemeral=True)
 			return
 
 		last_embed = embeds[-1]
@@ -66,7 +66,7 @@ class RulesCog(commands.Cog):
 		last_embed.timestamp = get_timestamp()
 
 		await discord_variables.rules_msg.edit(embeds=embeds, view=RulesAcceptView())
-		await interaction.response.send_message("Le message des règles a été modifié", ephemeral=True)
+		await interaction.response.send_message(embed=validation_embed("Le message des règles a été modifié"), ephemeral=True)
 
 	@commands.Cog.listener()
 	async def on_member_join(self, member):
