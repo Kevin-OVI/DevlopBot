@@ -39,7 +39,11 @@ class RulesCog(commands.Cog):
 	@application_checks.has_permissions(administrator=True)
 	async def rules_get_cmd(self, interaction):
 		f = io.StringIO()
-		json.dump([x.to_dict() for x in discord_variables.rules_msg.embeds], f, ensure_ascii=False, indent=2)
+		embeds = discord_variables.rules_msg.embeds
+		last_embed = embeds[-1]
+		last_embed.remove_footer()
+		last_embed.timestamp = None
+		json.dump([x.to_dict() for x in embeds], f, ensure_ascii=False, indent=2)
 		f.seek(0)
 		f = io.BytesIO(f.read().encode())
 		await interaction.response.send_message("Voici le json de l'embed des règles", file=nextcord.File(f, filename='rules message.json'), ephemeral=True)
@@ -56,6 +60,10 @@ class RulesCog(commands.Cog):
 		else:
 			await interaction.response.send_message("Le json doit être une liste d'objets embeds ou un objet embed", ephemeral=True)
 			return
+
+		last_embed = embeds[-1]
+		last_embed.set_footer(text="Cordialement, l'équipe de Dev-TryBranch", icon_url=discord_variables.main_guild.icon.url)
+		last_embed.timestamp = get_timestamp()
 
 		await discord_variables.rules_msg.edit(embeds=embeds, view=RulesAcceptView())
 		await interaction.response.send_message("Le message des règles a été modifié", ephemeral=True)
