@@ -411,6 +411,7 @@ def simplify_number(n: float):
 
 class AsyncExecReturn(Thread):
 	def __init__(self, target, args=(), kwargs=None):
+		import asyncio
 		if kwargs is None:
 			kwargs = {}
 		self.return_value = None
@@ -418,6 +419,7 @@ class AsyncExecReturn(Thread):
 		self.target = target
 		self.args = args
 		self.kwargs = kwargs
+		self.done_event = asyncio.Event()
 		super().__init__()
 
 	def run(self):
@@ -425,12 +427,13 @@ class AsyncExecReturn(Thread):
 			self.return_value = self.target(*self.args, **self.kwargs)
 		except Exception as e:
 			self.error = e
+		finally:
+			self.done_event.set()
 
 	async def start_wait(self):
 		import asyncio
 		self.start()
-		while self.is_alive():
-			await asyncio.sleep(0.1)
+		await self.done_event.wait()
 		if self.error:
 			raise self.error
 		return self.return_value
