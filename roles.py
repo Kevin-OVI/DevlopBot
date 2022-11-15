@@ -33,9 +33,9 @@ class RolesDropdown(ui.Select):
 		super().__init__(placeholder=placeholder, min_values=0, max_values=len(roles), options=roles, custom_id=custom_id)
 
 	async def callback(self, interaction: nextcord.Interaction):
-		roles = {self.roles_dic[i] for i in self.values}
+		roles = {self.roles_dic[i]["role"] for i in self.values}
 		current_roles = set(interaction.user.roles)
-		roles_total = set(self.roles_dic.values())
+		roles_total = {x["role"] for x in self.roles_dic.values()}
 		unchecked_roles = (roles_total - roles)
 		new_roles = list((current_roles - unchecked_roles) | roles)
 		await interaction.user.edit(roles=new_roles, reason="Selection des rôles")
