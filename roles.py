@@ -28,7 +28,8 @@ class ModifyRolesView(ui.View):
 class RolesDropdown(ui.Select):
 	def __init__(self, roles_dic, custom_id, placeholder, user: Optional[nextcord.Member]):
 		self.roles_dic = roles_dic
-		roles = [nextcord.SelectOption(label=name, default=False if user is None else (role in user.roles)) for name, role in roles_dic.items()]
+		roles = [nextcord.SelectOption(label=name, description=role_data.get("description"), emoji=role_data.get("emoji"),
+			default=False if user is None else (role_data["role"] in user.roles)) for name, role_data in roles_dic.items()]
 		super().__init__(placeholder=placeholder, min_values=0, max_values=len(roles), options=roles, custom_id=custom_id)
 
 	async def callback(self, interaction: nextcord.Interaction):
@@ -65,30 +66,38 @@ class RolesCog(commands.Cog):
 	async def on_first_ready(self):
 		get_role = discord_variables.main_guild.get_role
 		self.__class__.language_roles_dic = {
-			"Java": get_role(988871662227308574),
-			"JavaScript": get_role(988871735694729327),
-			"VB.net / VBS": get_role(988871774982799480),
-			"Julia": get_role(988871819975090196),
-			"Python": get_role(988871856260014140),
-			"C": get_role(988871895866810378),
-			"C++": get_role(988871923578601562),
-			"C#": get_role(988880822725664788),
-			"Assembleur": get_role(988871951697190953),
-			"Ruby": get_role(988871954553524264),
-			"Rust": get_role(988871954805166101),
-			"LolCode": get_role(988871955857936454),
-			"AppleScript": get_role(988871956050890813),
-			"Shell / Bash / PowerShell": get_role(988872142563180556),
-			"Fortran": get_role(988872144056385566),
-			"PHP": get_role(988872144899436584),
-			"HTML / CSS": get_role(988872146006736906),
-			"WLangage": get_role(988872146732318720),
-			"AutoHotkey": get_role(989138310708469771),
-			"TypeScript": get_role(990699698115452960)
+			"Java": {"role": get_role(988871662227308574)},
+			"JavaScript": {"role": get_role(988871735694729327)},
+			"VB.net / VBS": {"role": get_role(988871774982799480)},
+			"Julia": {"role": get_role(988871819975090196)},
+			"Python": {"role": get_role(988871856260014140)},
+			"C": {"role": get_role(988871895866810378)},
+			"C++": {"role": get_role(988871923578601562)},
+			"C#": {"role": get_role(988880822725664788)},
+			"Assembleur": {"role": get_role(988871951697190953)},
+			"Ruby": {"role": get_role(988871954553524264)},
+			"Rust": {"role": get_role(988871954805166101)},
+			"LolCode": {"role": get_role(988871955857936454)},
+			"AppleScript": {"role": get_role(988871956050890813)},
+			"Shell / Bash / PowerShell": {"role": get_role(988872142563180556)},
+			"Fortran": {"role": get_role(988872144056385566)},
+			"PHP": {"role": get_role(988872144899436584)},
+			"HTML / CSS": {"role": get_role(988872146006736906)},
+			"WLangage": {"role": get_role(988872146732318720)},
+			"AutoHotkey": {"role": get_role(989138310708469771)},
+			"TypeScript": {"role": get_role(990699698115452960)}
 		}
 		self.__class__.notif_roles_dic = {
-			"Notification Annnonces": get_role(995755726016348171),
-			"Notification Partenatiats": get_role(995755795364982895)
+			"Annonces": {
+				"role": get_role(995755726016348171),
+				"emoji": "📢",
+				"description": "Pour être mentionné lorsque nous postons une annonce"
+			},
+			"Partenatiats": {
+				"role": get_role(995755795364982895),
+				"emoji": "🤝",
+				"description": "Pour être mentionné lors d'un partenatiat"
+			}
 		}
 
 		bot.add_view(ModifyRolesView())
