@@ -7,6 +7,7 @@ import nextcord
 from bot_role_adder import BotRoleAdderCog
 from bump_reminder import BumpReminderCog
 from data_file import ConfigCog
+from discord_news_pinger import DiscordNewsPingerCog
 from discord_utils import default_errors
 from roles import RolesCog
 from rules import RulesCog
@@ -56,5 +57,6 @@ bot.add_cog(TicketsCog())
 bot.add_cog(BotRoleAdderCog())
 bot.add_cog(RolesCog())
 bot.add_cog(BumpReminderCog())
+bot.add_cog(DiscordNewsPingerCog())
 
 bot.run(os.getenv('TOKEN_DEVLOPBOT'))

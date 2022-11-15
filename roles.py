@@ -97,6 +97,11 @@ class RolesCog(commands.Cog):
 				"role": get_role(995755795364982895),
 				"emoji": "🤝",
 				"description": "Pour être mentionné lors d'un partenatiat"
+			},
+			"Actualités développeur Discord": {
+				"role": get_role(1042104450539589713),
+				"emoji": "⚙",
+				"description": "Pour être mentionné lors d'une nouvelle actualité discord"
 			}
 		}
 
