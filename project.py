@@ -61,7 +61,7 @@ def check_project_member(func):
 
 class ProjectCog(commands.Cog):
 	@nextcord.slash_command(name="project", guild_ids=guild_ids)
-	async def project_cmd(self):
+	async def project_cmd(self, interaction: nextcord.Interaction):
 		pass
 
 	@project_cmd.subcommand(name="create", description="Permet de créer un projet")

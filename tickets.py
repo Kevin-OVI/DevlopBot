@@ -62,7 +62,7 @@ def check_is_ticket(func):
 
 class TicketsCog(commands.Cog):
 	@nextcord.slash_command(name="ticket", guild_ids=guild_ids)
-	async def ticket_cmd(self):
+	async def ticket_cmd(self, interaction: nextcord.Interaction):
 		pass
 
 	@ticket_cmd.subcommand(name='create', description="Permet de créer un ticket")

@@ -41,7 +41,7 @@ load_json()
 class ConfigCog(commands.Cog):
 	@nextcord.slash_command(name="config", guild_ids=guild_ids, default_member_permissions=nextcord.Permissions(administrator=True))
 	@application_checks.has_permissions(administrator=True)
-	async def config_cmd(self):
+	async def config_cmd(self, interaction: nextcord.Interaction):
 		pass
 
 	@config_cmd.subcommand(name="save", description="Permet de sauvegarder le fichier de configuration")

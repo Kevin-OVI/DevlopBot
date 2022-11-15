@@ -7,7 +7,7 @@ from data_file import data, save_json
 
 class RoleOnReactCog(commands.Cog):
 	@nextcord.slash_command(name="roleonreact", guild_ids=guild_ids)
-	async def roleonreact_cmd(self):
+	async def roleonreact_cmd(self, interaction: nextcord.Interaction):
 		pass
 
 	@roleonreact_cmd.subcommand(name="add", description="Permet d'ajouter un rôle-réaction")

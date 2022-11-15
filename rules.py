@@ -32,7 +32,7 @@ class RulesAcceptView(ui.View):
 
 class RulesCog(commands.Cog):
 	@nextcord.slash_command(name="rules", guild_ids=guild_ids)
-	async def rules_cmd(self):
+	async def rules_cmd(self, interaction: nextcord.Interaction):
 		pass
 
 	@rules_cmd.subcommand(name="get", description="Permet d'obtenir le json de l'embed du message des règles")
