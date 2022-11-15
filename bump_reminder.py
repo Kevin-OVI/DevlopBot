@@ -36,8 +36,9 @@ class BumpReminderCog(commands.Cog):
 
 		interaction_user = interaction.user
 		if interaction_user.id not in data["bump_reminder_disabled"]:
-			await message.reply(embed=validation_embed(f"Merci d'avoir bumpé notre serveur. Nous allons vous rappeler de le bumper à nouveau dans 2 heures.").set_footer(
-				text=f"Rien ne vous oblige de le faire bien sur, vous pouvez désactiver le rappel avec la commande {self.bump_reminder_cmd.get_mention(discord_variables.main_guild)}"),
+			await message.reply(embed=validation_embed(
+				"Merci d'avoir bumpé notre serveur. Nous allons vous rappeler de le bumper à nouveau dans 2 heures.\n"
+				f"*Rien ne vous oblige de le faire bien sur, vous pouvez désactiver le rappel avec la commande {self.bump_reminder_cmd.get_mention(discord_variables.main_guild)}*"),
 				delete_after=7200)
 			self.scheduled_reminders[interaction.user.id] = scheduler.run_task_later(7200, self.remind_now, message, interaction_user)
 
