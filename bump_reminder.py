@@ -6,7 +6,7 @@ from nextcord.ext import commands
 import scheduler
 from data_file import data, save_json
 from utils import normal_embed, validation_embed
-from variables import guild_ids
+from variables import discord_variables, guild_ids
 
 
 class BumpReminderCog(commands.Cog):
@@ -37,10 +37,11 @@ class BumpReminderCog(commands.Cog):
 		interaction_user = interaction.user
 		if interaction_user.id not in data["bump_reminder_disabled"]:
 			await message.reply(embed=validation_embed(f"Merci d'avoir bumpé notre serveur. Nous allons vous rappeler de le bumper à nouveau dans 2 heures.").set_footer(
-				text="Rien ne vous oblige de le faire bien sur, vous pouvez désactiver le rappel avec la commande /bump_reminder"), delete_after=7200)
+				text=f"Rien ne vous oblige de le faire bien sur, vous pouvez désactiver le rappel avec la commande {self.bump_reminder_cmd.get_mention(discord_variables.main_guild)}"),
+				delete_after=7200)
 			self.scheduled_reminders[interaction.user.id] = scheduler.run_task_later(7200, self.remind_now, message, interaction_user)
 
 	async def remind_now(self, message: nextcord.Message, interaction_user: nextcord.User):
 		del (self.scheduled_reminders[interaction_user.id])
-		await message.reply(f"{interaction_user.mention} C'est l'heure du </bump:947088344167366698> !",
-			embed=normal_embed("Rien ne vous oblige de le faire bien sur, vous pouvez désactiver ce rappel avec la commande /bump_reminder"))
+		await message.reply(f"{interaction_user.mention} C'est l'heure du </bump:947088344167366698> !", embed=normal_embed(
+			f"Rien ne vous oblige de le faire bien sur, vous pouvez désactiver ce rappel avec la commande {self.bump_reminder_cmd.get_mention(discord_variables.main_guild)}"))
