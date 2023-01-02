@@ -52,24 +52,27 @@ class RulesCog(commands.Cog):
 	@application_checks.has_permissions(administrator=True)
 	async def rules_set_cmd(self, interaction,
 			rules_file: nextcord.Attachment = nextcord.SlashOption(name="embed", description="Le json de l'embed du message des règles", required=True)):
-		jload = json.loads(await rules_file.read())
-		if type(jload) == list:
-			embeds = [nextcord.Embed.from_dict(x) for x in jload]
-			if len(embeds) < 1:
-				await interaction.response.send_message(embed=error_embed("Le message doit contenir au moins un embed."), ephemeral=True)
+		try:
+			jload = json.loads(await rules_file.read())
+			if type(jload) == list:
+				embeds = [nextcord.Embed.from_dict(x) for x in jload]
+				if len(embeds) < 1:
+					await interaction.response.send_message(embed=error_embed("Le message doit contenir au moins un embed."), ephemeral=True)
+					return
+			elif type(jload) == dict:
+				embeds = [nextcord.Embed.from_dict(jload)]
+			else:
+				await interaction.response.send_message(embed=error_embed("Le json doit être une liste d'objets embeds ou un objet embed"), ephemeral=True)
 				return
-		elif type(jload) == dict:
-			embeds = [nextcord.Embed.from_dict(jload)]
-		else:
-			await interaction.response.send_message(embed=error_embed("Le json doit être une liste d'objets embeds ou un objet embed"), ephemeral=True)
-			return
 
-		last_embed = embeds[-1]
-		last_embed.set_footer(text="Cordialement, l'équipe de Dev-TryBranch", icon_url=discord_variables.main_guild.icon.url)
-		last_embed.timestamp = get_timestamp()
+			last_embed = embeds[-1]
+			last_embed.set_footer(text="Cordialement, l'équipe de Dev-TryBranch", icon_url=discord_variables.main_guild.icon.url)
+			last_embed.timestamp = get_timestamp()
 
-		await discord_variables.rules_msg.edit(embeds=embeds, view=RulesAcceptView())
-		await interaction.response.send_message(embed=validation_embed("Le message des règles a été modifié"), ephemeral=True)
+			await discord_variables.rules_msg.edit(embeds=embeds, view=RulesAcceptView())
+			await interaction.response.send_message(embed=validation_embed("Le message des règles a été modifié"), ephemeral=True)
+		except json.JSONDecodeError as e:
+			await interaction.response.send_message(embed=error_embed(f"Impossible de décoder le json :\n```{e}```"), ephemeral=True)
 
 	@commands.Cog.listener()
 	async def on_member_join(self, member):
