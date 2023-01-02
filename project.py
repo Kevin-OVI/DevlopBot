@@ -191,26 +191,27 @@ class ProjectCog(commands.Cog):
 	de <@{owner_id}>", "Unmute d'un membre")
 		await interaction.response.send_message(embed=validation_embed(f"{member.mention} n'est plus réduit au silence dans ce salon."), ephemeral=True)
 
-	@project_cmd.subcommand(name="hold-for-review", description="Permet de marquer un projet comme `à examiner`")
+	@project_cmd.subcommand(name="hold-for-review", description="Permet de mettre un projet en examen")
 	@check_is_moderator()
 	@check_is_project
-	async def project_holdforreview_cmd(self, interaction: nextcord.Interaction):
+	async def project_holdforreview_cmd(self, interaction: nextcord.Interaction,
+			reason: str = nextcord.SlashOption(name="raison", description="La raison de la mise en examen", required=True)):
 		owner_id, project_data = find_project(interaction.channel)
 		if project_data["held_for_review"]:
-			await unhold_for_review(interaction, owner_id, project_data)
+			await unhold_for_review(interaction, owner_id, project_data, reason)
 		else:
 			project_data["held_for_review"] = True
 			save_json()
 			overwrites = interaction.channel.overwrites
 			overwrites[interaction.guild.default_role] = nextcord.PermissionOverwrite(view_channel=False)
 			overwrites[discord_variables.moderator_role] = nextcord.PermissionOverwrite(view_channel=True)
-			bot.loop.create_task(interaction.channel.edit(category=discord_variables.revision_categ, overwrites=overwrites, reason="Marquage comme `à examiner`"))
+			bot.loop.create_task(interaction.channel.edit(category=discord_variables.revision_categ, overwrites=overwrites, reason="Mise en examen"))
 			bot.loop.create_task(try_send_dm(get_member(owner_id),
-				embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été marqué comme `à examiner`.\n\
+				embed=normal_embed(f"Votre projet [{project_data['name']}]({interaction.channel.jump_url}) à été mis en examen pour la raison : `{reason}`.\n\
 	Cela signifie qu'il n'est plus visible au public et qu'un modérateur ou administrateur doit l'examiner pour qu'il soit de nouveau accessible.")))
-			send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}> à été marqué comme `à examiner` par {interaction.user.mention}",
+			send_log(f"Le projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}> à été mis en examen par {interaction.user.mention} pour la raison : `{reason}`",
 				"Mise en examen")
-			await interaction.response.send_message(embed=validation_embed("Le projet à été marqué comme `à examiner`"), view=ReviewView())
+			await interaction.response.send_message(embed=validation_embed(f"Le projet à été mis en examen pour la raison : `{reason}`"), view=ReviewView())
 
 	@project_cmd.subcommand(name="transfer-property", description="Permet de transférer la propriété du projet à un autre membre du serveur")
 	@check_project_owner
@@ -301,6 +302,7 @@ class ProjectCog(commands.Cog):
 	async def on_first_ready(self):
 		bot.add_modal(ProjectTopicModal())
 		bot.add_modal(ProjectTopicEditModal())
+		bot.add_modal(UnholdReviewReasonModal())
 		bot.add_view(CreateProjectView())
 		bot.add_view(ReviewView())
 
@@ -402,6 +404,25 @@ class ProjectTopicEditModal(ProjectTopicModal):
 			await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+class UnholdReviewReasonModal(ui.Modal):
+	modal_name = f"{bot_name}:unhold_review_reason"
+
+	def __init__(self):
+		super().__init__("Suppression de mise en examen", timeout=None, custom_id=self.modal_name)
+		self.reason_field = ui.TextInput(label="Raison", style=nextcord.TextInputStyle.short, custom_id=f"{self.modal_name}:reason_field", min_length=3, max_length=300,
+			required=True)
+		self.add_item(self.reason_field)
+
+	async def callback(self, interaction: nextcord.Interaction):
+		owner_id, project_data = find_project(interaction.channel)
+		if not project_data["held_for_review"]:
+			bot.loop.create_task(interaction.message.delete())
+			await interaction.response.send_message(embed=error_embed("Le projet n'est pas mis en examen"), ephemeral=True)
+			return
+
+		await unhold_for_review(interaction, owner_id, project_data, self.reason_field.value)
+
+
 class CreateProjectView(ui.View):
 	view_name = f"{bot_name}:create_project"
 
@@ -428,10 +449,10 @@ class ReviewView(ui.View):
 		owner_id, project_data = find_project(interaction.channel)
 		if not project_data["held_for_review"]:
 			bot.loop.create_task(interaction.message.delete())
-			await interaction.response.send_message(embed=error_embed("Le projet n'est pas marqué comme `à examiner`"), ephemeral=True)
+			await interaction.response.send_message(embed=error_embed("Le projet n'est pas en examen"), ephemeral=True)
 			return
 
-		await unhold_for_review(interaction, owner_id, project_data)
+		await interaction.response.send_modal(UnholdReviewReasonModal())
 
 
 @cache_return()
@@ -466,7 +487,7 @@ def is_project_member(user, channel):
 	return user_id in project["members"]
 
 
-async def unhold_for_review(interaction, owner_id, project_data):
+async def unhold_for_review(interaction, owner_id, project_data, reason):
 	project_data["held_for_review"] = False
 	save_json()
 	overwrites = interaction.channel.overwrites
@@ -478,15 +499,16 @@ async def unhold_for_review(interaction, owner_id, project_data):
 		del (overwrites[discord_variables.moderator_role])
 	except KeyError:
 		pass
-	bot.loop.create_task(interaction.channel.edit(category=discord_variables.projects_categ, overwrites=overwrites, reason="Retrait du marquage comme `à examiner`"))
+	bot.loop.create_task(interaction.channel.edit(category=discord_variables.projects_categ, overwrites=overwrites, reason="Retrait de la mise en examen"))
 	bot.loop.create_task(try_send_dm(get_member(owner_id),
-		embed=normal_embed(f"Le marquage de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré.")))
-	send_log(f"Le marquage `à examiner` du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}> a été retiré par {interaction.user.mention}",
+		embed=normal_embed(f"La mise en examen de votre projet [{project_data['name']}]({interaction.channel.jump_url}) a été retiré pour la raison : `{reason}`.")))
+	send_log(f"La mise en examen du projet [{project_data['name']}]({interaction.channel.jump_url}) de <@{owner_id}> a été retiré par {interaction.user.mention} pour la raison : `{reason}`",
 		"Retrait de mise en examen")
+	embed = validation_embed(f"La mise en examen à été retiré du projet pour la raison : `{reason}`.")
 	if interaction.message:
-		await interaction.message.edit(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."), view=None)
+		await interaction.message.edit(embed=embed, view=None)
 	else:
-		await interaction.response.send_message(embed=validation_embed("Le marquage `à examiner` à été retiré du projet."))
+		await interaction.response.send_message(embed=embed)
 
 
 def generate_info_message(user, channel):
